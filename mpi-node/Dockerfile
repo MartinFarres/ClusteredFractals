@@ -1,0 +1,50 @@
+# Usa una imagen base de Ubuntu
+FROM ubuntu:20.04
+
+ENV DEBIAN_FRONTEND=noninteractive
+
+# Instalar dependencias necesarias
+RUN apt-get update && \
+    apt-get install -y \
+    git \
+    curl \
+    pkg-config \
+    openmpi-bin \
+    libopenmpi-dev \
+    libpng-dev \
+    cmake \
+    build-essential \
+    libpng-dev \
+    libz-dev \
+    wget \
+    g++ \
+    openssh-server \
+    && rm -rf /var/lib/apt/lists/*
+
+# Crear la carpeta fractal
+RUN mkdir -p /fractal
+
+# Cambiar al directorio fractal
+WORKDIR /fractal
+
+# Inicializar git y clonar el repositorio
+RUN git init && \
+    git clone https://github.com/FrancoYudica/DistributedFractals.git
+
+# Cambiar al directorio del repositorio clonado
+WORKDIR /fractal/DistributedFractals
+
+# Crear el directorio build y compilar el proyecto
+RUN mkdir build && \
+    cd build && \
+    cmake .. && \
+    make
+
+# Configurar el servicio SSH
+RUN mkdir /var/run/sshd
+
+# Exponer el puerto 22
+EXPOSE 22
+
+# Iniciar el servicio SSH y mantener el contenedor en ejecución
+CMD ["/usr/sbin/sshd", "-D"]

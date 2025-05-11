@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  mpi-node1:
+    build: ./../mpi-node/
+    container_name: mpi-node1
+    networks:
+      - mpi_network
+    hostname: mpi-node1
+    command: tail -f /dev/null
+    extra_hosts:
+      - "mpi-node1:172.18.0.2"
+      - "mpi-node2:172.18.0.3"
+      - "mpi-node3:172.18.0.4"
+      - "mpi-node4:172.18.0.5"
+
+  mpi-node2:
+    build: ./../mpi-node/
+    container_name: mpi-node2
+    networks:
+      - mpi_network
+    hostname: mpi-node2
+    command: tail -f /dev/null
+    extra_hosts:
+      - "mpi-node1:172.18.0.2"
+      - "mpi-node2:172.18.0.3"
+      - "mpi-node3:172.18.0.4"
+      - "mpi-node4:172.18.0.5"
+
+  mpi-node3:
+    build: ./../mpi-node/
+    container_name: mpi-node3
+    networks:
+      - mpi_network
+    hostname: mpi-node3
+    command: tail -f /dev/null
+    extra_hosts:
+      - "mpi-node1:172.18.0.2"
+      - "mpi-node2:172.18.0.3"
+      - "mpi-node3:172.18.0.4"
+      - "mpi-node4:172.18.0.5"
+
+  mpi-node4:
+    build: ./../mpi-node/
+    container_name: mpi-node4
+    networks:
+      - mpi_network
+    hostname: mpi-node4
+    command: tail -f /dev/null
+    extra_hosts:
+      - "mpi-node1:172.18.0.2"
+      - "mpi-node2:172.18.0.3"
+      - "mpi-node3:172.18.0.4"
+      - "mpi-node4:172.18.0.5"
+
+networks:
+  mpi_network:
+    driver: bridge
