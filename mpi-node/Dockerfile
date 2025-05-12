@@ -28,6 +28,8 @@ RUN useradd -m -s /bin/bash mpi-user && \
     mkdir -p /home/mpi-user/.ssh && \
     chown -R mpi-user:mpi-user /home/mpi-user/.ssh
 
+#USER mpi-user
+
 # Crear la carpeta fractal
 RUN mkdir -p /fractal
 
@@ -47,11 +49,17 @@ RUN mkdir build && \
     cmake .. && \
     make
 
+RUN chmod -R 777 /fractal
+
+#USER root
+
 # Configurar el servicio SSH
 RUN mkdir /var/run/sshd
 
 # Exponer el puerto 22
 EXPOSE 22
 
-# Iniciar el servicio SSH y mantener el contenedor en ejecución
-CMD ["/usr/sbin/sshd", "-D"]
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod a+x /entrypoint.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
