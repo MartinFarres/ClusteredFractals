@@ -20,15 +20,19 @@ RUN apt-get update && \
     g++ \
     openssh-server \
     nano \
+    sudo \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear usuario mpi-user con home y bash shell
 RUN useradd -m -s /bin/bash mpi-user && \
     echo "mpi-user:mpi-password" | chpasswd && \
     mkdir -p /home/mpi-user/.ssh && \
-    chown -R mpi-user:mpi-user /home/mpi-user/.ssh
-
-#USER mpi-user
+    chown -R mpi-user:mpi-user /home/mpi-user/.ssh && \
+    echo "mpi-user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
+    usermod -aG sudo mpi-user
+    # echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
+    # echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
+    # echo "AllowUsers mpi-user" >> /etc/ssh/sshd_config
 
 # Crear la carpeta fractal
 RUN mkdir -p /fractal
@@ -51,15 +55,18 @@ RUN mkdir build && \
 
 RUN chmod -R 777 /fractal
 
-#USER root
-
-# Configurar el servicio SSH
+# Preparar SSH
 RUN mkdir /var/run/sshd
 
 # Exponer el puerto 22
 EXPOSE 22
 
+# Copiar el script de entrada
 COPY entrypoint.sh /entrypoint.sh
 RUN chmod a+x /entrypoint.sh
 
+# Cambiar al usuario normal
+USER mpi-user
+
+# Entry point
 ENTRYPOINT ["/entrypoint.sh"]
