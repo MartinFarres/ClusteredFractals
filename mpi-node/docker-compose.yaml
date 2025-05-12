@@ -7,7 +7,7 @@ services:
     networks:
       - mpi_network
     hostname: mpi-node1
-    command: tail -f /dev/null
+    # command: tail -f /dev/null
     extra_hosts:
       - "mpi-node1:172.18.0.2"
       - "mpi-node2:172.18.0.3"
@@ -20,7 +20,7 @@ services:
     networks:
       - mpi_network
     hostname: mpi-node2
-    command: tail -f /dev/null
+    # command: tail -f /dev/null
     extra_hosts:
       - "mpi-node1:172.18.0.2"
       - "mpi-node2:172.18.0.3"
@@ -33,7 +33,7 @@ services:
     networks:
       - mpi_network
     hostname: mpi-node3
-    command: tail -f /dev/null
+    # command: tail -f /dev/null
     extra_hosts:
       - "mpi-node1:172.18.0.2"
       - "mpi-node2:172.18.0.3"
@@ -46,7 +46,7 @@ services:
     networks:
       - mpi_network
     hostname: mpi-node4
-    command: tail -f /dev/null
+    # command: tail -f /dev/null
     extra_hosts:
       - "mpi-node1:172.18.0.2"
       - "mpi-node2:172.18.0.3"

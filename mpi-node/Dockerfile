@@ -19,7 +19,14 @@ RUN apt-get update && \
     wget \
     g++ \
     openssh-server \
+    nano \
     && rm -rf /var/lib/apt/lists/*
+
+# Crear usuario mpi-user con home y bash shell
+RUN useradd -m -s /bin/bash mpi-user && \
+    echo "mpi-user:mpi-password" | chpasswd && \
+    mkdir -p /home/mpi-user/.ssh && \
+    chown -R mpi-user:mpi-user /home/mpi-user/.ssh
 
 # Crear la carpeta fractal
 RUN mkdir -p /fractal
