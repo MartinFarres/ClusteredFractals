@@ -1,7 +1,7 @@
 # Variables
 CLIENT_DIR=client
 SERVER_DIR=server
-VENV_DIR=$(SERVER_DIR)/venv
+VENV_DIR=$(SERVER_DIR)/.venv
 
 # Comandos
 .PHONY: all install run-client run-server dev clean
