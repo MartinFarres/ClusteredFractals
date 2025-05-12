@@ -21,6 +21,7 @@ RUN apt-get update && \
     openssh-server \
     nano \
     sudo \
+    sshpass \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear usuario mpi-user con home y bash shell
@@ -30,9 +31,6 @@ RUN useradd -m -s /bin/bash mpi-user && \
     chown -R mpi-user:mpi-user /home/mpi-user/.ssh && \
     echo "mpi-user ALL=(ALL) NOPASSWD: ALL" >> /etc/sudoers && \
     usermod -aG sudo mpi-user
-    # echo "PermitRootLogin no" >> /etc/ssh/sshd_config && \
-    # echo "PasswordAuthentication yes" >> /etc/ssh/sshd_config && \
-    # echo "AllowUsers mpi-user" >> /etc/ssh/sshd_config
 
 # Crear la carpeta fractal
 RUN mkdir -p /fractal
