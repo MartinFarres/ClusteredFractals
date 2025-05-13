@@ -21,8 +21,10 @@ NAMESPACE = os.getenv("POD_NAMESPACE", "default")
 # Constants
 STATEFULSET_NAME = "mpi-node"
 SERVICE_NAME = "mpi-node-headless"
-NODE_COUNT = 4  # Fixed number of MPI nodes
-IMAGE = os.getenv("MPI_IMAGE", "your-registry/mpi-node:latest")
+NODE_COUNT = int(os.getenv("NODE_COUNT", 4))  
+SLOTS_PER_NODE = int(os.getenv("SLOTS_PER_NODE", 2)) 
+IMAGE = os.getenv("MPI_IMAGE", "martinfarres/mpi-node:latest")
+MPIPASS = os.getenv("MPIPASS")
 
 # Manifest generators
 def create_headless_service():
@@ -46,9 +48,11 @@ def create_headless_service():
 
 
 def create_statefulset():
+    env_vars = [client.V1EnvVar(name="MPIPASS", value=MPIPASS)]
     container = client.V1Container(
         name="mpi-node",
         image=IMAGE,
+        env=env_vars,
         ports=[client.V1ContainerPort(container_port=22)],
     )
     spec = client.V1StatefulSetSpec(
@@ -66,7 +70,7 @@ def create_statefulset():
     )
     try:
         apps_v1.create_namespaced_stateful_set(namespace=NAMESPACE, body=sts)
-        print("StatefulSet created with ", NODE_COUNT, " replicas.")
+        print(f"StatefulSet created with {NODE_COUNT} replicas.")
     except ApiException as e:
         if e.status == 409:
             print("StatefulSet already exists.")
@@ -74,9 +78,8 @@ def create_statefulset():
             print(f"StatefulSet creation error: {e.status} {e.body}")
             raise
 
-
+# Ensure headless Service and StatefulSet exist with correct replica count
 def ensure_mpi_deployed():
-    """Ensure headless Service and StatefulSet exist with correct replica count."""
     try:
         sts = apps_v1.read_namespaced_stateful_set(name=STATEFULSET_NAME, namespace=NAMESPACE)
         current = sts.spec.replicas
@@ -97,9 +100,8 @@ def ensure_mpi_deployed():
             print(f"Error checking StatefulSet: {e.status} {e.body}")
             raise
 
-
+# Wait until all MPI nodes are in the 'Running'
 def wait_for_all_nodes_ready():
-    """Wait until all MPI nodes are in the 'Running' & ready state."""
     print("Waiting for all MPI nodes to be ready...")
     while True:
         pods = v1.list_namespaced_pod(namespace=NAMESPACE, label_selector=f"app={STATEFULSET_NAME}").items
@@ -109,22 +111,50 @@ def wait_for_all_nodes_ready():
         print(f"Ready: {len(ready)}/{NODE_COUNT}")
         time.sleep(2)
 
+# Create hostfile and share SSH keys across nodes
+def prepare_hostfile_and_keys(master_pod, pods):
+    # Paths inside the container
+    project_root = "/home/mpi-user/fractal/DistributedFractals"
+    build_dir = f"{project_root}/build"
+    hostfile_path = f"{build_dir}/hostfile"
 
-def get_mpi_host_list(pods):
-    return ",".join(f"{p.metadata.name}.{SERVICE_NAME}.{NAMESPACE}.svc.cluster.local" for p in pods)
+    # Build hostfile content
+    lines = [f"{p.status.pod_ip} slots={SLOTS_PER_NODE}\n" for p in pods]
+    hostfile_content = "".join(lines)
 
-
-def run_mpi_on_master(master_pod, host_list, args):
-    mpi_cmd = f"mpiexec -n {NODE_COUNT} -host {host_list} ./fractal {' '.join(args)}"
-    print(f"Running command on master: {mpi_cmd}")
-
-    exec_command = ["/bin/bash", "-c", mpi_cmd]
+    # Ensure build directory exists and write hostfile
+    cmd_write = f"mkdir -p {build_dir} && echo -e '{hostfile_content}' > {hostfile_path}"
+    print(f"Writing hostfile to {hostfile_path}:{hostfile_content}")
     stream(v1.connect_get_namespaced_pod_exec,
-           name=master_pod,
-           namespace=NAMESPACE,
-           command=exec_command,
+           name=master_pod, namespace=NAMESPACE,
+           command=["/bin/bash","-c", cmd_write],
            stderr=True, stdin=False, stdout=True, tty=False)
-    print("MPI job sent to master node.")
+
+    # Share public keys using the script in src/scripts
+    script_path = f"{project_root}/src/scripts/share_public_keys.sh"
+    cmd_keys = f"bash {script_path} {hostfile_path} {MPIPASS}"
+    print(f"Sharing public keys with: {cmd_keys}")
+    stream(v1.connect_get_namespaced_pod_exec,
+           name=master_pod, namespace=NAMESPACE,
+           command=["/bin/bash","-c", cmd_keys],
+           stderr=True, stdin=False, stdout=True, tty=False)
+    
+
+# Prepare environment then run the MPI job
+def run_mpi_on_master(master_pod, pods, args):
+    # Prepare hostfile and distribute keys
+    prepare_hostfile_and_keys(master_pod, pods)
+    # MPI run
+    project_root = "/home/mpi-user/fractal/DistributedFractals/build"
+    total_slots = NODE_COUNT * SLOTS_PER_NODE
+    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)}"
+    print(f"Running MPI command: {mpi_cmd}")
+    output = stream(v1.connect_get_namespaced_pod_exec,
+       name=master_pod, namespace=NAMESPACE,
+       command=["/bin/bash", "-l", "-c", mpi_cmd],
+       stderr=True, stdin=False, stdout=True, tty=False)
+    print(output)
+    print("MPI job initiated.")
 
 
 def main_loop():
@@ -136,17 +166,13 @@ def main_loop():
             try:
                 data = json.loads(job)
                 args = data.get("args", [])
-
                 # Ensure the MPI deployment exists and is scaled
                 ensure_mpi_deployed()
-
                 # Wait for all pods to be ready before running
                 pods = wait_for_all_nodes_ready()
-
                 master = pods[0].metadata.name
-                host_list = get_mpi_host_list(pods)
-
-                run_mpi_on_master(master, host_list, args)
+                # Run the full MPI workflow on master
+                run_mpi_on_master(master, pods, args)
             except Exception as e:
                 print(f"Error processing job: {e}")
         else:

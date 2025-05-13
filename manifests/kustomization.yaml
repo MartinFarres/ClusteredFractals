@@ -7,5 +7,9 @@ resources:
   - redis/redis-service.yaml
   - server/server-deployment.yaml
   - server/server-service.yaml
-  - puller/puller-service-account.yaml
+  - puller/puller-sa.yaml
+  - puller/puller-role.yaml
+  - puller/puller-rolebinding.yaml
+  - puller/puller-clusterrole.yaml      
+  - puller/puller-clusterrolebinding.yaml  
   - puller/puller-deployment.yaml

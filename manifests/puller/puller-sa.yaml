@@ -1,0 +1,6 @@
+# puller/puller-sa.yaml
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: puller-sa
+  namespace: distributed-fractals

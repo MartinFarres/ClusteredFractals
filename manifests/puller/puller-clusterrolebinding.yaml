@@ -1,0 +1,12 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: puller-full-access-binding
+subjects:
+  - kind: ServiceAccount
+    name: puller-sa
+    namespace: distributed-fractals
+roleRef:
+  kind: ClusterRole
+  name: puller-full-access
+  apiGroup: rbac.authorization.k8s.io
