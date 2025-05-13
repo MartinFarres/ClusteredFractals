@@ -1,13 +1,13 @@
 import os
 import redis
 import time
+import json
 from kubernetes import client, config
 from kubernetes.stream import stream
-import json
+from kubernetes.client.rest import ApiException
 
 # Kubernetes setup
-config.load_incluster_config()  
-
+config.load_incluster_config()
 v1 = client.CoreV1Api()
 apps_v1 = client.AppsV1Api()
 
@@ -15,48 +15,93 @@ apps_v1 = client.AppsV1Api()
 redis_host = os.getenv("REDIS_HOST", "localhost")
 r = redis.Redis(host=redis_host, port=6379, db=0)
 
-# Dinamic Namespace
+# Dynamic Namespace
 NAMESPACE = os.getenv("POD_NAMESPACE", "default")
 
 # Constants
 STATEFULSET_NAME = "mpi-node"
-NODE_COUNT = 4  # Fixed number of MPI nodes
+SERVICE_NAME = "mpi-node-headless"
+NODE_COUNT = 4  
+IMAGE = os.getenv("MPI_IMAGE", "martinfarres/mpi-nodes:latest")
 
-def get_current_node_count():
-    """Get the current replica count of the StatefulSet."""
-    statefulset = apps_v1.read_namespaced_stateful_set(name=STATEFULSET_NAME, namespace=NAMESPACE)
-    return statefulset.spec.replicas
-
-def scale_mpi_nodes():
-    """Scale the StatefulSet to the desired number of nodes (once)."""
-    current_count = get_current_node_count()
-    if current_count != NODE_COUNT:
-        apps_v1.patch_namespaced_stateful_set_scale(
-            name=STATEFULSET_NAME,
-            namespace=NAMESPACE,
-            body={"spec": {"replicas": NODE_COUNT}}
+# Manifest generators
+def create_headless_service():
+    svc = client.V1Service(
+        metadata=client.V1ObjectMeta(name=SERVICE_NAME),
+        spec=client.V1ServiceSpec(
+            cluster_ip='None',
+            selector={"app": STATEFULSET_NAME},
+            ports=[client.V1ServicePort(port=22, name="ssh")]
         )
-        print(f"Scaled StatefulSet to {NODE_COUNT} replicas.")
-    else:
-        print(f"StatefulSet already has {NODE_COUNT} replicas.")
+    )
+    try:
+        v1.create_namespaced_service(namespace=NAMESPACE, body=svc)
+        print("Headless service created.")
+    except ApiException as e:
+        if e.status == 409:
+            print("Headless service already exists.")
+        else:
+            raise
 
+
+def create_statefulset():
+    container = client.V1Container(
+        name="mpi-node",
+        image=IMAGE,
+        ports=[client.V1ContainerPort(container_port=22)],
+    )
+    spec = client.V1StatefulSetSpec(
+        service_name=SERVICE_NAME,
+        selector=client.V1LabelSelector(match_labels={"app": STATEFULSET_NAME}),
+        replicas=NODE_COUNT,
+        template=client.V1PodTemplateSpec(
+            metadata=client.V1ObjectMeta(labels={"app": STATEFULSET_NAME}),
+            spec=client.V1PodSpec(containers=[container])
+        )
+    )
+    sts = client.V1StatefulSet(
+        metadata=client.V1ObjectMeta(name=STATEFULSET_NAME),
+        spec=spec
+    )
+    try:
+        apps_v1.create_namespaced_stateful_set(namespace=NAMESPACE, body=sts)
+        print("StatefulSet created.")
+    except ApiException as e:
+        if e.status == 409:
+            print("StatefulSet already exists.")
+        else:
+            raise
+
+
+# Ensure headless service and statefulset exist.
+def ensure_mpi_deployed():
+    try:
+        apps_v1.read_namespaced_stateful_set(name=STATEFULSET_NAME, namespace=NAMESPACE)
+        print("StatefulSet already present.")
+    except ApiException as e:
+        if e.status == 404:
+            create_headless_service()
+            create_statefulset()
+        else:
+            raise
+
+# Wait until all MPI nodes are in the 'Running' state.
 def wait_for_all_nodes_ready():
-    """Wait until all MPI nodes are in the 'Running' state."""
     print("Waiting for all MPI nodes to be ready...")
     while True:
-        pods = v1.list_namespaced_pod(namespace=NAMESPACE, label_selector="app=mpi-node").items
+        pods = v1.list_namespaced_pod(namespace=NAMESPACE, label_selector=f"app={STATEFULSET_NAME}").items
         ready = [p for p in pods if p.status.phase == "Running" and all(cs.ready for cs in p.status.container_statuses)]
         if len(ready) == NODE_COUNT:
             return sorted(ready, key=lambda p: p.metadata.name)
         print(f"Ready: {len(ready)}/{NODE_COUNT}")
         time.sleep(2)
 
+
 def get_mpi_host_list(pods):
-    """Generate the MPI host list (DNS names of pods)."""
-    return ",".join(f"{p.metadata.name}.{STATEFULSET_NAME}.{NAMESPACE}.svc.cluster.local" for p in pods)
+    return ",".join(f"{p.metadata.name}.{SERVICE_NAME}.{NAMESPACE}.svc.cluster.local" for p in pods)
+
 
 def run_mpi_on_master(master_pod, host_list, args):
-    """Run MPI job on the master node."""
     mpi_cmd = f"mpiexec -n {NODE_COUNT} -host {host_list} ./fractal {' '.join(args)}"
     print(f"Running command on master: {mpi_cmd}")
 
@@ -68,8 +113,8 @@ def run_mpi_on_master(master_pod, host_list, args):
            stderr=True, stdin=False, stdout=True, tty=False)
     print("MPI job sent to master node.")
 
+
 def main_loop():
-    """Main loop for pulling jobs from Redis and running them."""
     print("Puller started. Listening for jobs in Redis...")
     while True:
         job = r.lpop("mpi_jobs")
@@ -78,18 +123,16 @@ def main_loop():
             try:
                 data = json.loads(job)
                 args = data.get("args", [])
-                
-                # Scale nodes only once
-                scale_mpi_nodes()
+
+                # Ensure deployment exists
+                ensure_mpi_deployed()
 
                 # Wait for all nodes to be ready
                 pods = wait_for_all_nodes_ready()
 
-                # Get the master pod and host list for MPI
+                # Select master and run job
                 master = pods[0].metadata.name
                 host_list = get_mpi_host_list(pods)
-
-                # Run the job on the master node (no response expected)
                 run_mpi_on_master(master, host_list, args)
             except Exception as e:
                 print(f"Error processing job: {e}")

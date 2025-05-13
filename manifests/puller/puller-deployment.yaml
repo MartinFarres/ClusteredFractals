@@ -13,17 +13,21 @@ spec:
       labels:
         app: puller
     spec:
-      serviceAccountName: puller-sa  # Moved here
+      serviceAccountName: puller-sa
       containers:
         - name: puller
           image: martinfarres/python-puller_kubernetes-redis
-          imagePullPolicy: Always  # Optional, helps during development
+          imagePullPolicy: Always
           env:
             - name: SERVER_HOST
               value: server
             - name: REDIS_HOST
               value: redis
-            - name: POD_NAMESPACE  # Optional, if used in Python
+            - name: POD_NAMESPACE
               valueFrom:
                 fieldRef:
                   fieldPath: metadata.namespace
+            - name: MPI_IMAGE
+              value: "martinfarres/mpi-node:slim"
+      # imagePullSecrets:
+      #   - passuser: mpi-password
