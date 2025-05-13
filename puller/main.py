@@ -21,8 +21,8 @@ NAMESPACE = os.getenv("POD_NAMESPACE", "default")
 # Constants
 STATEFULSET_NAME = "mpi-node"
 SERVICE_NAME = "mpi-node-headless"
-NODE_COUNT = 4  
-IMAGE = os.getenv("MPI_IMAGE", "martinfarres/mpi-nodes:latest")
+NODE_COUNT = 4  # Fixed number of MPI nodes
+IMAGE = os.getenv("MPI_IMAGE", "your-registry/mpi-node:latest")
 
 # Manifest generators
 def create_headless_service():
@@ -41,6 +41,7 @@ def create_headless_service():
         if e.status == 409:
             print("Headless service already exists.")
         else:
+            print(f"Service creation error: {e.status} {e.body}")
             raise
 
 
@@ -65,28 +66,40 @@ def create_statefulset():
     )
     try:
         apps_v1.create_namespaced_stateful_set(namespace=NAMESPACE, body=sts)
-        print("StatefulSet created.")
+        print("StatefulSet created with ", NODE_COUNT, " replicas.")
     except ApiException as e:
         if e.status == 409:
             print("StatefulSet already exists.")
         else:
+            print(f"StatefulSet creation error: {e.status} {e.body}")
             raise
 
 
-# Ensure headless service and statefulset exist.
 def ensure_mpi_deployed():
+    """Ensure headless Service and StatefulSet exist with correct replica count."""
     try:
-        apps_v1.read_namespaced_stateful_set(name=STATEFULSET_NAME, namespace=NAMESPACE)
-        print("StatefulSet already present.")
+        sts = apps_v1.read_namespaced_stateful_set(name=STATEFULSET_NAME, namespace=NAMESPACE)
+        current = sts.spec.replicas
+        if current != NODE_COUNT:
+            apps_v1.patch_namespaced_stateful_set_scale(
+                name=STATEFULSET_NAME,
+                namespace=NAMESPACE,
+                body={"spec": {"replicas": NODE_COUNT}}
+            )
+            print(f"Scaled StatefulSet from {current} to {NODE_COUNT} replicas.")
+        else:
+            print(f"StatefulSet present with {current} replicas.")
     except ApiException as e:
         if e.status == 404:
             create_headless_service()
             create_statefulset()
         else:
+            print(f"Error checking StatefulSet: {e.status} {e.body}")
             raise
 
-# Wait until all MPI nodes are in the 'Running' state.
+
 def wait_for_all_nodes_ready():
+    """Wait until all MPI nodes are in the 'Running' & ready state."""
     print("Waiting for all MPI nodes to be ready...")
     while True:
         pods = v1.list_namespaced_pod(namespace=NAMESPACE, label_selector=f"app={STATEFULSET_NAME}").items
@@ -124,15 +137,15 @@ def main_loop():
                 data = json.loads(job)
                 args = data.get("args", [])
 
-                # Ensure deployment exists
+                # Ensure the MPI deployment exists and is scaled
                 ensure_mpi_deployed()
 
-                # Wait for all nodes to be ready
+                # Wait for all pods to be ready before running
                 pods = wait_for_all_nodes_ready()
 
-                # Select master and run job
                 master = pods[0].metadata.name
                 host_list = get_mpi_host_list(pods)
+
                 run_mpi_on_master(master, host_list, args)
             except Exception as e:
                 print(f"Error processing job: {e}")
