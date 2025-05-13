@@ -2,7 +2,7 @@ version: '3.8'
 
 services:
   mpi-node1:
-    build: ./../mpi-node/
+    build: ./slim/
     container_name: mpi-node1
     networks:
       - mpi_network
@@ -15,7 +15,7 @@ services:
       - "mpi-node4:172.18.0.5"
 
   mpi-node2:
-    build: ./../mpi-node/
+    build: ./slim/
     container_name: mpi-node2
     networks:
       - mpi_network
@@ -28,7 +28,7 @@ services:
       - "mpi-node4:172.18.0.5"
 
   mpi-node3:
-    build: ./../mpi-node/
+    build: ./slim/
     container_name: mpi-node3
     networks:
       - mpi_network
@@ -41,7 +41,7 @@ services:
       - "mpi-node4:172.18.0.5"
 
   mpi-node4:
-    build: ./../mpi-node/
+    build: ./slim/
     container_name: mpi-node4
     networks:
       - mpi_network
