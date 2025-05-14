@@ -140,15 +140,15 @@ def prepare_hostfile_and_keys(master_pod, pods):
            command=["/bin/bash","-c", cmd_keys],
            stderr=True, stdin=False, stdout=True, tty=False)
 
-# Return the ClusterIp of the 'server' Service in our namespace
-def get_server_service_ip():
-    try:
-        svc = v1.read_namespaced_service(name="server", namespace=NAMESPACE)
-        ip = svc.spec.cluster_ip
-        return ip
-    except ApiException as e:
-        print(f"Error reading server service: {e.status} {e.body}")
-        raise
+# Return the  of the 'server' Service in our namespace
+def get_server_pod_ip(label_selector="app=server"):
+    pods = v1.list_namespaced_pod(namespace=NAMESPACE, label_selector=label_selector).items
+    if not pods:
+        raise RuntimeError(f"No pods found matching '{label_selector}'")
+    ip = pods[0].status.pod_ip
+    print(f"Discovered server pod IP: {ip} (pod {pods[0].metadata.name})")
+    return ip
+
 
 
 # Prepare environment then run the MPI job
@@ -158,7 +158,7 @@ def run_mpi_on_master(master_pod, pods, args):
     # MPI run
     project_root = "/home/mpi-user/fractal/DistributedFractals/build"
     total_slots = NODE_COUNT * SLOTS_PER_NODE
-    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)} -on {get_server_service_ip()} 5001"
+    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)} -on {get_server_pod_ip()} 5001"
     print(f"Running MPI command: {mpi_cmd}")
     output = stream(v1.connect_get_namespaced_pod_exec,
        name=master_pod, namespace=NAMESPACE,
