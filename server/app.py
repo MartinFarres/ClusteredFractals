@@ -64,8 +64,8 @@ def upload_image():
 # Simple TCP server that accepts connections and expects 
 # a PNG formatted buffer image. 
 def run_server():
-    HOST = 5001
-    PORT = '0.0.0.0'
+    HOST = '0.0.0.0'
+    PORT = 5001
     global done
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
