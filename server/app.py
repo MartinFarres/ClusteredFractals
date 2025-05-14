@@ -1,11 +1,15 @@
 from flask import Flask, request, jsonify, Response
 import redis
+import socket
+import threading
 
 # Initialize the Flask application
 app = Flask(__name__)
 
 # Set up Redis (if needed for job data storage)
 r = redis.Redis(host='redis.default.svc.cluster.local', port=6379, db=0)
+
+done = False
 
 # Route to receive the job parameters (for image generation)
 @app.route('/api/submit-job', methods=['PUT'])
@@ -57,6 +61,45 @@ def upload_image():
         print(f"Error in uploading image: {e}")
         return jsonify({"error": "Failed to upload image"}), 400
 
+# Simple TCP server that accepts connections and expects 
+# a PNG formatted buffer image. 
+def run_server():
+    HOST = 5001
+    PORT = '0.0.0.0'
+    global done
+    server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+    server_socket.bind((HOST, PORT))
+    server_socket.listen()
+    server_socket.settimeout(1.0)  # Set timeout for accept()
+
+    print(f"Server is listening on port {PORT}")
+    while not done:
+        try:
+            client_socket, _ = server_socket.accept()
+        except socket.timeout:
+            continue  # Just try again in the next loop iteration
+
+        # Handle the client
+        try:
+            data = b''
+            expected_size = int.from_bytes(client_socket.recv(4), byteorder='big')
+
+            while len(data) < expected_size:
+                packet = client_socket.recv(4096)
+                if not packet:
+                    break
+                data += packet
+
+            #image_generated_callback(data)
+            with open("imagen_recibida.png", "wb") as f:
+                f.write(data) 
+        finally:
+            client_socket.close()
+
+    server_socket.close()
+
 if __name__ == '__main__':
+    server_thread = threading.Thread(target=run_server)
+    server_thread.start()
     # Run the server on the specified port
     app.run(host='0.0.0.0', port=5000)
