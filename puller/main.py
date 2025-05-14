@@ -23,7 +23,7 @@ STATEFULSET_NAME = "mpi-node"
 SERVICE_NAME = "mpi-node-headless"
 NODE_COUNT = int(os.getenv("NODE_COUNT", 4))  
 SLOTS_PER_NODE = int(os.getenv("SLOTS_PER_NODE", 2)) 
-IMAGE = os.getenv("MPI_IMAGE", "martinfarres/mpi-node:latest")
+IMAGE = os.getenv("MPI_IMAGE")
 MPIPASS = os.getenv("MPIPASS")
 
 # Manifest generators
@@ -52,6 +52,7 @@ def create_statefulset():
     container = client.V1Container(
         name="mpi-node",
         image=IMAGE,
+        image_pull_policy="Always",
         env=env_vars,
         ports=[client.V1ContainerPort(container_port=22)],
     )
@@ -138,7 +139,17 @@ def prepare_hostfile_and_keys(master_pod, pods):
            name=master_pod, namespace=NAMESPACE,
            command=["/bin/bash","-c", cmd_keys],
            stderr=True, stdin=False, stdout=True, tty=False)
-    
+
+# Return the ClusterIp of the 'server' Service in our namespace
+def get_server_service_ip():
+    try:
+        svc = v1.read_namespaced_service(name="server", namespace=NAMESPACE)
+        ip = svc.spec.cluster_ip
+        return ip
+    except ApiException as e:
+        print(f"Error reading server service: {e.status} {e.body}")
+        raise
+
 
 # Prepare environment then run the MPI job
 def run_mpi_on_master(master_pod, pods, args):
@@ -147,7 +158,7 @@ def run_mpi_on_master(master_pod, pods, args):
     # MPI run
     project_root = "/home/mpi-user/fractal/DistributedFractals/build"
     total_slots = NODE_COUNT * SLOTS_PER_NODE
-    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)}"
+    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)} -on {get_server_service_ip()}"
     print(f"Running MPI command: {mpi_cmd}")
     output = stream(v1.connect_get_namespaced_pod_exec,
        name=master_pod, namespace=NAMESPACE,

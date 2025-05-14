@@ -16,6 +16,7 @@ spec:
       containers:
         - name: server
           image: martinfarres/python-server_kubernetes-redis
+          imagePullPolicy: Always
           ports:
             - containerPort: 5000
           env:

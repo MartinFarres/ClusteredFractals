@@ -19,7 +19,7 @@ RUN apt-get update && \
 WORKDIR /fractal
 
 RUN git init && \
-    git clone https://github.com/FrancoYudica/DistributedFractals.git
+    git clone --depth 1 https://github.com/FrancoYudica/DistributedFractals.git
 
 WORKDIR /fractal/DistributedFractals
 
