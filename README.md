@@ -15,6 +15,9 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
 
 ## Architecture Overview
 
+![image](https://github.com/user-attachments/assets/a1eb9dcf-8b7c-4d00-be38-e70573be0233)
+
+
 1. **Client** submits fractal parameters via REST to the **Server**.
 2. **Server** enqueues a job in **Redis** (`RPUSH mpi_jobs ...`).
 3. **Puller** watches Redis, then uses the Kubernetes API to:
