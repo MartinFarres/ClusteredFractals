@@ -158,7 +158,7 @@ def run_mpi_on_master(master_pod, pods, args):
     # MPI run
     project_root = "/home/mpi-user/fractal/DistributedFractals/build"
     total_slots = NODE_COUNT * SLOTS_PER_NODE
-    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)} -on {get_server_service_ip()}"
+    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)} -on {get_server_service_ip()} 5001"
     print(f"Running MPI command: {mpi_cmd}")
     output = stream(v1.connect_get_namespaced_pod_exec,
        name=master_pod, namespace=NAMESPACE,
