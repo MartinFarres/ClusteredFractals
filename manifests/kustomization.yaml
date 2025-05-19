@@ -13,3 +13,5 @@ resources:
   - puller/puller-clusterrole.yaml      
   - puller/puller-clusterrolebinding.yaml  
   - puller/puller-deployment.yaml
+  - client/client-deployment.yaml
+  - client/client-service.yaml

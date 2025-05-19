@@ -1,47 +1,46 @@
 from flask import Flask, request, jsonify, Response
+from flask_cors import CORS
 import redis
 import socket
 import threading
 import uuid
 import json
-import requests 
+import requests
 
-# Initialize the Flask application
+# Initialize Flask
 app = Flask(__name__)
+CORS(app, resources={r"/api/*": {"origins": "*"}})
 
-# Set up Redis
-r = redis.Redis(host='redis.default.svc.cluster.local', port=6379, db=0)
+# Redis client
+r = redis.Redis(host='redis', port=6379, db=0)
 
+done = False
 
-# Route to submit the job
 @app.route('/api/submit-job', methods=['PUT'])
 def submit_job():
     body = request.get_json(force=True)
-    # Generates UUID
     job_uuid = str(uuid.uuid4())
 
-    # Gets Params
     try:
-        width      = int(body['width'])
-        height     = int(body['height'])
-        block_size = int(body['block_size'])
-        samples    = int(body['samples'])
-        camera_x   = float(body['camerax'])
-        camera_y   = float(body['cameray'])
-        zoom       = float(body['zoom'])
-        render_type= int(body['type'])
-    except (KeyError, ValueError):
+        # Validate parameters
+        params = ['width','height','block_size','samples','camerax','cameray','zoom','type']
+        for p in params:
+            _ = body[p]
+        width, height, block_size = map(int, [body['width'], body['height'], body['block_size']])
+        samples = int(body['samples'])
+        camera_x, camera_y, zoom = map(float, [body['camerax'], body['cameray'], body['zoom']])
+        render_type = int(body['type'])
+    except Exception:
         return jsonify({"error": "Parámetros inválidos"}), 400
 
-    # Gets callback url
     callback_url = body.get('callback_url')
     if not callback_url:
         return jsonify({"error": "callback_url es obligatorio"}), 400
 
-    # Save UUID: callback_url in Redis
+    # Store callback
     r.hset('callbacks', job_uuid, callback_url)
 
-    # Push Job to Redis (with UUID)
+    # Queue job
     job_data = {
         'uuid': job_uuid,
         'width': width,
@@ -53,90 +52,75 @@ def submit_job():
         'zoom': zoom,
         'type': render_type
     }
-    r.lpush("mpi_jobs", json.dumps(job_data))
-
-    # Return msg to client
+    r.lpush('mpi_jobs', json.dumps(job_data))
+    app.logger.info(f"Queued job: {job_data}")
     return jsonify({"uuid": job_uuid}), 202
 
-
-def run_socket_listener():
-    """
-    Thread that listenst to the socket in 5001
-    A Waits:
-      1) UUID size
-      2) UUID
-      3) Image size
-      4) Buffer PNG
-    """
+def run_server():
     HOST = '0.0.0.0'
     PORT = 5001
+    global done
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
     server_socket.listen()
-    print(f"[Socket] escuchando en {HOST}:{PORT}")
+    server_socket.settimeout(1.0)  # Set timeout for accept()
 
-    while True:
-        client_sock, addr = server_socket.accept()
-        threading.Thread(target=handle_client, args=(client_sock,)).start()
-
-
-def handle_client(client_sock):
-    try:
-        # Gets UUID Size
-        raw = client_sock.recv(4)
-        if len(raw) < 4:
-            return
-        uuid_len = int.from_bytes(raw, byteorder='big')
-
-        # Gets UUID
-        uuid_bytes = b''
-        while len(uuid_bytes) < uuid_len:
-            chunk = client_sock.recv(uuid_len - len(uuid_bytes))
-            if not chunk:
-                return
-            uuid_bytes += chunk
-        job_uuid = uuid_bytes.decode('utf-8')
-
-        # Gets image buffer size
-        raw = client_sock.recv(4)
-        if len(raw) < 4:
-            return
-        img_len = int.from_bytes(raw, byteorder='big')
-
-        # Gets buffer image
-        img_data = b''
-        while len(img_data) < img_len:
-            packet = client_sock.recv(min(4096, img_len - len(img_data)))
-            if not packet:
-                break
-            img_data += packet
-
-        # Gets back callback_url from redis using uuid
-        entry = r.hget('callbacks', job_uuid)
-        if not entry:
-            print(f"[Socket] UUID desconocido o ya procesado: {job_uuid}")
-            return
-        callback_url = entry.decode('utf-8')
-
-        # POST image to corresponding client
+    print(f"Server is listening on port {PORT}")
+    while not done:
         try:
-            headers = {'Content-Type': 'image/png', 'X-Job-UUID': job_uuid}
-            resp = requests.post(callback_url, data=img_data, headers=headers, timeout=5)
-            if resp.status_code // 100 != 2:
-                print(f"[Socket] Error {resp.status_code} reenviando a {callback_url}")
-        except requests.RequestException as e:
-            print(f"[Socket] Falló POST a {callback_url}: {e}")
+            client_socket, _ = server_socket.accept()
+        except socket.timeout:
+            continue  # Just try again in the next loop iteration
 
-        # Cleans Redis
-        r.hdel('callbacks', job_uuid)
+        # Handle the client
+        try:
+            # Step 1: Receive UUID length (4 bytes depending on sender)
+            uuid_len_bytes = recv_exact(client_socket, 4)
+            uuid_len = int.from_bytes(uuid_len_bytes, byteorder='big')
 
-    finally:
-        client_sock.close()
+            # Step 2: Receive UUID string
+            uuid_bytes = recv_exact(client_socket, uuid_len)
+            uuid = uuid_bytes.decode('utf-8')
+            print(f"UUID: {uuid}")
 
+            # Step 3: Receive buffer size (4 bytes for uint32)
+            buf_size_bytes = recv_exact(client_socket, 4)
+            buf_size = int.from_bytes(buf_size_bytes, byteorder='big')
+            print(buf_size)
+
+            # Step 4: Receive the buffer (image or binary data)
+            img_data = recv_exact(client_socket, buf_size)
+
+            # Procesamiento y reenvío...
+            entry = r.hget('callbacks', uuid)
+            if not entry:
+                app.logger.warning(f"Unknown UUID: {uuid}")
+                return
+            callback_url = entry.decode('utf-8')
+            headers = {'Content-Type': 'image/png', 'X-Job-UUID': uuid}
+            try:
+                resp = requests.post(callback_url, data=img_data, headers=headers, timeout=5)
+                if not resp.ok:
+                    app.logger.error(f"Error {resp.status_code} forwarding to {callback_url}")
+            except Exception as e:
+                app.logger.error(f"Exception posting to callback: {e}")
+            finally:
+                r.hdel('callbacks', uuid)
+        finally:
+            client_socket.close()
+
+    server_socket.close()
+
+def recv_exact(sock, num_bytes):
+    """Receive exactly num_bytes from the socket."""
+    data = b''
+    while len(data) < num_bytes:
+        packet = sock.recv(num_bytes - len(data))
+        if not packet:
+            raise ConnectionError("Client disconnected")
+        data += packet
+    return data
 
 if __name__ == '__main__':
-    # Start thread listening in background socket
-    t = threading.Thread(target=run_socket_listener, daemon=True)
-    t.start()
-    # Start Flask in port 5000
+    threading.Thread(target=run_server, daemon=True).start()
     app.run(host='0.0.0.0', port=5000)

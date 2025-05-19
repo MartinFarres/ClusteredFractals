@@ -1,0 +1,21 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: client
+  namespace: distributed-fractals
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: client
+  template:
+    metadata:
+      labels:
+        app: client
+    spec:
+      containers:
+        - name: client
+          image: martinfarres/client-reactapp-nginx
+          ports:
+            - containerPort: 80
+     
