@@ -152,13 +152,13 @@ def get_server_pod_ip(label_selector="app=server"):
 
 
 # Prepare environment then run the MPI job
-def run_mpi_on_master(master_pod, pods, args):
+def run_mpi_on_master(master_pod, pods, args, job_uuid):
     # Prepare hostfile and distribute keys
     prepare_hostfile_and_keys(master_pod, pods)
     # MPI run
     project_root = "/home/mpi-user/fractal/DistributedFractals/build"
     total_slots = NODE_COUNT * SLOTS_PER_NODE
-    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)} -on {get_server_pod_ip()} 5001"
+    mpi_cmd = f"mpirun -np {total_slots} --hostfile {project_root}/hostfile {project_root}/fractal_mpi  {' '.join(args)} -on {get_server_pod_ip()} 5001 {job_uuid}"
     print(f"Running MPI command: {mpi_cmd}")
     output = stream(v1.connect_get_namespaced_pod_exec,
        name=master_pod, namespace=NAMESPACE,
@@ -176,6 +176,7 @@ def main_loop():
             print("Received job:", job)
             try:
                 data = json.loads(job)
+                job_uuid = data.pop("uuid", None)
                 args = data.get("args", [])
                 # Ensure the MPI deployment exists and is scaled
                 ensure_mpi_deployed()
@@ -183,7 +184,7 @@ def main_loop():
                 pods = wait_for_all_nodes_ready()
                 master = pods[0].metadata.name
                 # Run the full MPI workflow on master
-                run_mpi_on_master(master, pods, args)
+                run_mpi_on_master(master, pods, args, job_uuid)
             except Exception as e:
                 print(f"Error processing job: {e}")
         else:
