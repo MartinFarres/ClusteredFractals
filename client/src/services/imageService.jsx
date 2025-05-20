@@ -5,17 +5,20 @@ const API_URL =`http://${window.location.hostname}:30080`;
 export const fetchRenderedImage = async (params) => {
   const payload = {
     ...params,
-    callback_url: `${window.location.origin}/callback`
+    callback_url: `http://${window.location.hostname}:30082/callback`
   };
 
   try {
-    const { data } = await axios.put(
+    const response = await axios.put(
       `${API_URL}/api/submit-job`,
       payload,
       { headers: { "Content-Type": "application/json" } }
     );
-    console.log("Job UUID:", data.uuid);
+    console.log("Job UUID:", response.uuid);
+    return response;  
   } catch (err) {
     console.error("Submit job error:", err.response?.data || err.message);
   }
+
+
 }

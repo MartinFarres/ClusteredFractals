@@ -15,3 +15,5 @@ resources:
   - puller/puller-deployment.yaml
   - client/client-deployment.yaml
   - client/client-service.yaml
+  - client/backend-deployment.yaml
+  - client/backend-service.yaml

@@ -23,16 +23,35 @@ const ImageForm = ({ setImageSrc }) => {
     }));
   };
 
+  // Dentro de handleSubmit en ImageForm.jsx
   const handleSubmit = async (e) => {
     e.preventDefault();
     try {
-      const imageUrl = await fetchRenderedImage(params);
-      setImageSrc(imageUrl);
+      const { data } = await fetchRenderedImage(params);
+
+      const jobUuid = data.uuid;
+      // Poll para la imagen, hasta que esté disponible
+      const interval = setInterval(async () => {
+        try {
+          const res = await fetch(`http://${window.location.hostname}:30081/image/${jobUuid}`);
+          if (res.status === 200) {
+            const blob = await res.blob();
+            const imgUrl = URL.createObjectURL(blob);
+            setImageSrc(imgUrl);
+            clearInterval(interval);
+          }
+        } catch (err) {
+          // Ignorar error 404 para seguir esperando
+        }
+      }, 1000);
+
     } catch (err) {
       console.error(err);
       alert('Error al contactar el servidor.');
     }
   };
+
+
 
   return (
     <form onSubmit={handleSubmit} className="row g-3">
