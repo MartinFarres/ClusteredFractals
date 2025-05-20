@@ -167,6 +167,24 @@ def run_mpi_on_master(master_pod, pods, args, job_uuid):
     print(output)
     print("MPI job initiated.")
 
+def build_mpi_args(data):
+    args = []
+    # Mapping of flags to data keys
+    flags = [
+        ("--width", "width"),
+        ("--height", "height"),
+        ("--block_size", "block_size"),
+        ("--samples", "samples"),
+        ("--zoom", "zoom"),
+        ("--camera_x", "camera_x"),
+        ("--camera_y", "camera_y"),
+        ("--type", "type"),
+        ("--color_mode", "color_mode"),
+    ]
+    for flag, key in flags:
+        args.extend([flag, str(data[key])])
+    return args
+
 
 def main_loop():
     print("Puller started. Listening for jobs in Redis...")
@@ -177,14 +195,15 @@ def main_loop():
             try:
                 data = json.loads(job)
                 job_uuid = data.pop("uuid", None)
-                args = data.get("args", [])
+                # Build MPI args from job data
+                mpi_args = build_mpi_args(data)
                 # Ensure the MPI deployment exists and is scaled
                 ensure_mpi_deployed()
                 # Wait for all pods to be ready before running
                 pods = wait_for_all_nodes_ready()
                 master = pods[0].metadata.name
                 # Run the full MPI workflow on master
-                run_mpi_on_master(master, pods, args, job_uuid)
+                run_mpi_on_master(master, pods, mpi_args, job_uuid)
             except Exception as e:
                 print(f"Error processing job: {e}")
         else:

@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
-import { fetchRenderedImage } from '../services/imageService';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { submitJob } from '../services/api';
 
-const defaultParams = {
+const DEFAULT_PARAMS = {
   width: 800,
   height: 600,
   block_size: 4,
@@ -10,74 +11,133 @@ const defaultParams = {
   cameray: 0,
   zoom: 1,
   type: 0,
+  color_mode: 0,
 };
 
-const ImageForm = ({ setImageSrc }) => {
-  const [params, setParams] = useState(defaultParams);
+export default function ImageForm() {
+  const navigate = useNavigate();
+  const [params, setParams] = useState(DEFAULT_PARAMS);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem('last_job_params');
+      if (saved) setParams(JSON.parse(saved));
+    } catch {}
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
-    setParams((prev) => ({
+    // Convert to number (int or float)
+    const numeric = name.includes('julia') || name === 'zoom' || name === 'camerax' || name === 'cameray'
+      ? parseFloat(value)
+      : parseInt(value, 10);
+    setParams(prev => ({
       ...prev,
-      [name]: value,
+      [name]: numeric
     }));
   };
 
-  // Dentro de handleSubmit en ImageForm.jsx
+  const handleTypeChange = (e) => {
+    setParams(prev => ({ ...prev, type: Number(e.target.value) }));
+  };
+
+  const handleColorModeChange = (e) => {
+    setParams(prev => ({ ...prev, color_mode: Number(e.target.value) }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    setLoading(true);
+    setError('');
     try {
-      const { data } = await fetchRenderedImage(params);
-
-      const jobUuid = data.uuid;
-      // Poll para la imagen, hasta que esté disponible
-      const interval = setInterval(async () => {
-        try {
-          const res = await fetch(`http://${window.location.hostname}:30081/image/${jobUuid}`);
-          if (res.status === 200) {
-            const blob = await res.blob();
-            const imgUrl = URL.createObjectURL(blob);
-            setImageSrc(imgUrl);
-            clearInterval(interval);
-          }
-        } catch (err) {
-          // Ignorar error 404 para seguir esperando
-        }
-      }, 1000);
-
+      localStorage.setItem('last_job_params', JSON.stringify(params));
+      const uuid = await submitJob(params);
+      navigate(`/loading/${uuid}`);
     } catch (err) {
       console.error(err);
-      alert('Error al contactar el servidor.');
+      setError('Error al enviar los parámetros.');
+    } finally {
+      setLoading(false);
     }
   };
 
-
-
   return (
-    <form onSubmit={handleSubmit} className="row g-3">
-      {Object.entries(params).map(([key, value]) => (
-        <div className="col-md-6" key={key}>
-          <label htmlFor={key} className="form-label">
-            {key}
-          </label>
-          <input
-            type={'number'}
-            className="form-control"
-            id={key}
-            name={key}
-            value={value}
-            onChange={handleChange}
-          />
+    <div className="container my-5">
+      <div className="card shadow mx-auto" style={{ maxWidth: '600px' }}>
+        <div className="card-body">
+          <h3 className="card-title text-center mb-4">Generador de Fractales</h3>
+          <form onSubmit={handleSubmit}>
+            <div className="row g-3">
+              {Object.entries(params)
+                .filter(([key]) => key !== 'type' && key !== 'color_mode')
+                .map(([key, val]) => (
+                  <div className="col-md-6" key={key}>
+                    <label htmlFor={key} className="form-label text-capitalize">
+                      {key.replace(/_/g, ' ')}
+                    </label>
+                    <input
+                      type="number"
+                      step={key.includes('julia') || ['zoom', 'camerax', 'cameray'].includes(key) ? 'any' : '1'}
+                      className="form-control"
+                      id={key}
+                      name={key}
+                      value={val}
+                      onChange={handleChange}
+                      required
+                    />
+                  </div>
+                ))}
+
+              <div className="col-md-12">
+                <label htmlFor="type" className="form-label">Tipo de Fractal</label>
+                <select
+                  id="type"
+                  className="form-select"
+                  value={params.type}
+                  onChange={handleTypeChange}
+                >
+                  <option value="0">Mandelbrot</option>
+                  <option value="1">Julia Set</option>
+                </select>
+              </div>
+
+              <div className="col-md-12">
+                <label htmlFor="color_mode" className="form-label">Modo de Color</label>
+                <select
+                  id="color_mode"
+                  className="form-select"
+                  value={params.color_mode}
+                  onChange={handleColorModeChange}
+                >
+                  <option value="0">Black & White</option>
+                  <option value="1">Grayscale</option>
+                  <option value="2">Blue Green Red</option>
+                </select>
+              </div>
+
+              {error && (
+                <div className="col-12">
+                  <div className="alert alert-danger py-2" role="alert">
+                    {error}
+                  </div>
+                </div>
+              )}
+
+              <div className="col-12">
+                <button
+                  type="submit"
+                  className="btn btn-primary w-100"
+                  disabled={loading}
+                >
+                  {loading ? 'Generando...' : 'Generar Imagen'}
+                </button>
+              </div>
+            </div>
+          </form>
         </div>
-      ))}
-
-      <div className="col-12">
-        <button type="submit" className="btn btn-primary w-100">
-          Generar Imagen
-        </button>
       </div>
-    </form>
+    </div>
   );
-};
-
-export default ImageForm;
+}

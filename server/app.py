@@ -5,7 +5,6 @@ import socket
 import threading
 import uuid
 import json
-import requests
 
 # Initialize Flask
 app = Flask(__name__)
@@ -23,22 +22,19 @@ def submit_job():
 
     try:
         # Validate parameters
-        params = ['width','height','block_size','samples','camerax','cameray','zoom','type']
+        params = ['width','height','block_size','samples','camerax','cameray','zoom','type', 'color_mode']
         for p in params:
             _ = body[p]
         width, height, block_size = map(int, [body['width'], body['height'], body['block_size']])
         samples = int(body['samples'])
         camera_x, camera_y, zoom = map(float, [body['camerax'], body['cameray'], body['zoom']])
         render_type = int(body['type'])
+        color_mode = int(body['color_mode'])
     except Exception:
         return jsonify({"error": "Parámetros inválidos"}), 400
 
-    callback_url = body.get('callback_url')
-    if not callback_url:
-        return jsonify({"error": "callback_url es obligatorio"}), 400
-
-    # Store callback
-    r.hset('callbacks', job_uuid, callback_url)
+    # Store uuid in images hash map
+    r.hset('images', job_uuid, b'')
 
     # Queue job
     job_data = {
@@ -47,14 +43,35 @@ def submit_job():
         'height': height,
         'block_size': block_size,
         'samples': samples,
-        'camerax': camera_x,
-        'cameray': camera_y,
+        'camera_x': camera_x,
+        'camera_y': camera_y,
         'zoom': zoom,
-        'type': render_type
+        'type': render_type,
+        'color_mode': color_mode,
     }
     r.lpush('mpi_jobs', json.dumps(job_data))
     app.logger.info(f"Queued job: {job_data}")
     return jsonify({"uuid": job_uuid}), 202
+
+@app.route('/api/get-image/<uuid>', methods=['GET'])
+def get_image(uuid):
+    try:
+        image = r.hget('images', uuid)
+        if image is None:
+            return jsonify({'error':'UUID not found'}), 404
+        if image == b'':
+            return jsonify({'message':'Still processing'}), 202
+        return Response(image, mimetype='image/png'), 200
+
+    except redis.RedisError as e:
+        app.logger.error(f"Redis error: {e}")
+        return jsonify({'error':'Redis error','details':str(e)}), 500
+
+    except Exception as e:
+        app.logger.error(f"Unexpected error: {e}")
+        return jsonify({'error':'Unexpected error','details':str(e)}), 500
+
+# Socket Handler ---------------------------------------------------------------------------
 
 def run_server():
     HOST = '0.0.0.0'
@@ -80,8 +97,8 @@ def run_server():
 
             # Step 2: Receive UUID string
             uuid_bytes = recv_exact(client_socket, uuid_len)
-            uuid = uuid_bytes.decode('utf-8')
-            print(f"UUID: {uuid}")
+            job_uuid = uuid_bytes.decode('utf-8')
+            print(f"UUID: {job_uuid}")
 
             # Step 3: Receive buffer size (4 bytes for uint32)
             buf_size_bytes = recv_exact(client_socket, 4)
@@ -91,21 +108,9 @@ def run_server():
             # Step 4: Receive the buffer (image or binary data)
             img_data = recv_exact(client_socket, buf_size)
 
-            # Procesamiento y reenvío...
-            entry = r.hget('callbacks', uuid)
-            if not entry:
-                app.logger.warning(f"Unknown UUID: {uuid}")
-                return
-            callback_url = entry.decode('utf-8')
-            headers = {'Content-Type': 'image/png', 'X-Job-UUID': uuid}
-            try:
-                resp = requests.post(callback_url, data=img_data, headers=headers, timeout=5)
-                if not resp.ok:
-                    app.logger.error(f"Error {resp.status_code} forwarding to {callback_url}")
-            except Exception as e:
-                app.logger.error(f"Exception posting to callback: {e}")
-            finally:
-                r.hdel('callbacks', uuid)
+            # Step 5: Updates redis with image
+            r.hset('images', job_uuid, img_data)
+
         finally:
             client_socket.close()
 
