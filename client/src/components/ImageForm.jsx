@@ -67,7 +67,7 @@ export default function ImageForm() {
     <div className="container my-5">
       <div className="card shadow mx-auto" style={{ maxWidth: '600px' }}>
         <div className="card-body">
-          <h3 className="card-title text-center mb-4">Generador de Fractales</h3>
+          <h4 className="card-title text-center mb-4">Elegir características</h4>
           <form onSubmit={handleSubmit}>
             <div className="row g-3">
               {Object.entries(params)

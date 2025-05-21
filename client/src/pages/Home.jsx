@@ -1,5 +1,7 @@
 import React from 'react';
 import ImageForm from '../components/ImageForm';
+import Header from '../components/Header';
+import Footer from '../components/Footer';
 import { useNavigate } from 'react-router-dom';
 import { submitJob } from '../services/api';
 
@@ -17,10 +19,13 @@ const Home = () => {
   };
 
   return (
-    <div className="container mt-5">
-      <h2 className="mb-4">Generar Fractal</h2>
-      <ImageForm onSubmit={handleSubmit} />
-    </div>
+    <>
+      <Header />
+      <main className="container mt-5">
+        <ImageForm onSubmit={handleSubmit} />
+      </main>
+      <Footer />
+    </>
   );
 };
 
