@@ -39,3 +39,9 @@ jobs:
       run: |
         docker build ./server -t ${{ secrets.DOCKERHUB_USERNAME }}/python-server_kubernetes-redis:latest
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/python-server_kubernetes-redis:latest
+
+
+    - name: Build and push observer  image
+      run: |
+        docker build ./observer -t ${{ secrets.DOCKERHUB_USERNAME }}/python-observer_kubernetes-redis:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/python-observer_kubernetes-redis:latest
