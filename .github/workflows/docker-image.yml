@@ -1,0 +1,41 @@
+name: Docker Image CI
+
+on:
+  push:
+    branches: [ "main" ]
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Log in to Docker Hub
+      run: echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
+    - name: Build and push client image
+      run: |
+        docker build ./client -t ${{ secrets.DOCKERHUB_USERNAME }}/client-reactapp-nginx:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/client-reactapp-nginx:latest
+
+    - name: Build and push mpi-node image
+      run: |
+        docker build ./mpi-node -t ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:latest
+
+    - name: Build and push mpi-node/slim image
+      run: |
+        docker build ./mpi-node/slim -t ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:slim
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:slim
+
+    - name: Build and push puller image
+      run: |
+        docker build ./puller -t ${{ secrets.DOCKERHUB_USERNAME }}/python-puller_kubernetes-redis:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/python-puller_kubernetes-redis:latest
+
+    - name: Build and push server image
+      run: |
+        docker build ./server -t ${{ secrets.DOCKERHUB_USERNAME }}/python-server_kubernetes-redis:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/python-server_kubernetes-redis:latest
