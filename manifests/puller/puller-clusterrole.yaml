@@ -7,5 +7,6 @@ rules:
     resources: ["pods", "pods/exec", "services"]
     verbs: ["get", "list", "watch", "create", "patch"]
   - apiGroups: ["apps"]
-    resources: ["statefulsets", "statefulsets/scale"]
+    resources: ["deployments", "statefulsets", "statefulsets/scale"]
     verbs: ["get", "list", "create", "patch"]
+

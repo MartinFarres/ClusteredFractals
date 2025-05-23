@@ -13,5 +13,6 @@ rules:
     resources: ["services"]
     verbs: ["get","list","create","patch"]
   - apiGroups: ["apps"]
-    resources: ["statefulsets","statefulsets/scale"]
-    verbs: ["get","list","create","patch"]
+    resources: ["deployments", "statefulsets", "statefulsets/scale"]
+    verbs: ["get", "list", "create", "patch"]
+
