@@ -20,10 +20,10 @@ jobs:
         docker build ./client -t ${{ secrets.DOCKERHUB_USERNAME }}/client-reactapp-nginx:latest
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/client-reactapp-nginx:latest
 
-    - name: Build and push mpi-node image
-      run: |
-        docker build ./mpi-node -t ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:latest
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:latest
+    # - name: Build and push mpi-node image
+      # run: |
+        # docker build ./mpi-node -t ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:latest
+        # docker push ${{ secrets.DOCKERHUB_USERNAME }}/mpi-node:latest
 
     - name: Build and push mpi-node/slim image
       run: |
