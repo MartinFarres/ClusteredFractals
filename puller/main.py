@@ -12,7 +12,7 @@ v1      = client.CoreV1Api()
 apps_v1 = client.AppsV1Api()
 
 # --- Redis setup ---
-redis_host = os.getenv("REDIS_HOST", "localhost")
+redis_host = os.getenv("REDIS_HOST", "redis")
 r = redis.Redis(host=redis_host, port=6379, db=0)
 
 # --- Dynamic Namespace from env ---

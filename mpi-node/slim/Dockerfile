@@ -1,4 +1,4 @@
-# ──────── Stage 1: Build ────────
+## ──────── Stage 1: Build ────────
 FROM debian:bookworm-slim AS builder
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -12,21 +12,18 @@ RUN apt-get update && \
       openmpi-bin \
       libopenmpi-dev \
       libpng-dev \
-      libz-dev \
-    && rm -rf /var/lib/apt/lists/*
+      libz-dev && \
+    rm -rf /var/lib/apt/lists/*
 
 # Clone and build the project
 WORKDIR /fractal
-
 RUN git init && \
     git clone --depth 1 https://github.com/FrancoYudica/DistributedFractals.git
-
 WORKDIR /fractal/DistributedFractals
-
 RUN mkdir build && cd build && \
     cmake .. && make
 
-# ──────── Stage 2: Runtime ────────
+## ──────── Stage 2: Runtime ────────
 FROM debian:bookworm-slim
 ENV DEBIAN_FRONTEND=noninteractive
 
@@ -40,7 +37,12 @@ RUN apt-get update && \
       sudo \
       openssh-server \
       sshpass \
-    && rm -rf /var/lib/apt/lists/*
+      python3 \
+      python3-pip && \
+    rm -rf /var/lib/apt/lists/*
+
+# Install Python Redis client
+RUN pip3 install redis
 
 # Create mpi-user with sudo & ssh setup
 RUN useradd -m -s /bin/bash mpi-user && \
@@ -55,14 +57,19 @@ COPY --from=builder /fractal /home/mpi-user/fractal
 RUN chown -R mpi-user:mpi-user /home/mpi-user/fractal && \
     chmod -R a+x /home/mpi-user/fractal
 
-
 # SSH setup
 RUN mkdir /var/run/sshd
 EXPOSE 22
 
-# Copy entrypoint
+# Copy entrypoint and socket handler
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+COPY socker_handler.py /home/mpi-user/socker_handler.py
+
+# Make entrypoint executable and configure to start socket handler
+RUN chmod +x /entrypoint.sh && \
+    echo "# start socket server in background" >> /entrypoint.sh && \
+    echo "python3 /home/mpi-user/socker_handler.py &" >> /entrypoint.sh && \
+    chown mpi-user:mpi-user /home/mpi-user/socker_handler.py
 
 USER mpi-user
 WORKDIR /home/mpi-user

@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: autoscaler
+  namespace: distributed-fractals
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: autoscaler
+  template:
+    metadata:
+      labels:
+        app: autoscaler
+    spec:
+      serviceAccountName: autoscaler-sa
+      containers:
+        - name: autoscaler
+          image: martinfarres/python-autoscaler_kubernetes-redis:latest
+          imagePullPolicy: Always
+          env:
+            - name: REDIS_HOST
+              value: redis 
+            - name: SCALING_THRESHOLD
+              value: "10"
+          volumeMounts:
+            - name: manifests
+              mountPath: /manifests
+      volumes:
+        - name: manifests
+          configMap:
+            name: puller-yamls

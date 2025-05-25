@@ -7,12 +7,19 @@ resources:
   - redis/redis-service.yaml
   - server/server-deployment.yaml
   - server/server-service.yaml
-  - puller/puller-sa.yaml
-  - puller/puller-role.yaml
-  - puller/puller-rolebinding.yaml
-  - puller/puller-clusterrole.yaml      
-  - puller/puller-clusterrolebinding.yaml  
-  - puller/puller-deployment.yaml
+  - autoscaler/autoscaler-clusterrole.yaml
+  - autoscaler/autoscaler-clusterrolebinding.yaml
+  - autoscaler/autoscaler-configmap.yaml
+  - autoscaler/autoscaler-deployment.yaml
+  - autoscaler/autoscaler-role.yaml
+  - autoscaler/autoscaler-rolebinding.yaml
+  - autoscaler/autoscaler-serviceaccount.yaml
   - client/client-deployment.yaml
   - client/client-service.yaml
+  # - puller/puller-sa.yaml
+  # - puller/puller-role.yaml
+  # - puller/puller-rolebinding.yaml
+  # - puller/puller-clusterrole.yaml      
+  # - puller/puller-clusterrolebinding.yaml  
+  # - puller/puller-deployment.yaml
 
