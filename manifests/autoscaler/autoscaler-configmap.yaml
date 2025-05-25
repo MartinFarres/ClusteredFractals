@@ -4,6 +4,50 @@ metadata:
   name: puller-yamls
   namespace: distributed-fractals
 data:
+
+  puller-sa.yaml: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: puller-sa
+      namespace: PLACE_HOLDER
+  
+  puller-role.yaml: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: puller-role
+      namespace: PLACE_HOLDER 
+    rules:
+      - apiGroups: [""]
+        resources: ["pods"]
+        verbs: ["get","list","watch"]
+      - apiGroups: [""]
+        resources: ["pods/exec"]
+        verbs: ["get","create"]
+      - apiGroups: [""]
+        resources: ["services"]
+        verbs: ["get","list","create","patch"]
+      - apiGroups: ["apps"]
+        resources: ["deployments", "statefulsets", "statefulsets/scale"]
+        verbs: ["get", "list", "create", "patch"]
+
+  puller-rolebinding.yaml: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: puller-rb
+      namespace: PLACE_HOLDER 
+    subjects:
+      - kind: ServiceAccount
+        name: puller-sa
+        namespace: PLACE_HOLDER 
+    roleRef:
+      kind: Role
+      name: puller-role
+      apiGroup: rbac.authorization.k8s.io
+ 
+
   puller-deployment.yaml: |
     apiVersion: apps/v1
     kind: Deployment
@@ -46,46 +90,4 @@ data:
                   value: "martinfarres/python-observer_kubernetes-redis:latest"
           # imagePullSecrets:
           #   - passuser: mpi-password
-
-  puller-sa.yaml: |
-    apiVersion: v1
-    kind: ServiceAccount
-    metadata:
-      name: puller-sa
-      namespace: PLACE_HOLDER
-  
-  puller-role.yaml: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: Role
-    metadata:
-      name: puller-role
-      namespace: PLACE_HOLDER 
-    rules:
-      - apiGroups: [""]
-        resources: ["pods"]
-        verbs: ["get","list","watch"]
-      - apiGroups: [""]
-        resources: ["pods/exec"]
-        verbs: ["get","create"]
-      - apiGroups: [""]
-        resources: ["services"]
-        verbs: ["get","list","create","patch"]
-      - apiGroups: ["apps"]
-        resources: ["deployments", "statefulsets", "statefulsets/scale"]
-        verbs: ["get", "list", "create", "patch"]
-    
-  puller-rolebinging.yaml: |
-    apiVersion: rbac.authorization.k8s.io/v1
-    kind: RoleBinding
-    metadata:
-      name: puller-rb
-      namespace: PLACE_HOLDER 
-    subjects:
-      - kind: ServiceAccount
-        name: puller-sa
-    roleRef:
-      kind: Role
-      name: puller-role
-      apiGroup: rbac.authorization.k8s.io
-
 

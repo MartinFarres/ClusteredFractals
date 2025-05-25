@@ -36,24 +36,27 @@ def deploy_namespace(ns_name: str):
         if e.status != 409:
             raise
 
-    # Aplica cada YAML en /manifests al namespace ns_name
-    for fname in os.listdir(MANIFEST_DIR):
-        
-        if not fname.endswith((".yaml", ".yml")):
-            continue
+    # Lista de archivos YAML en orden explícito
+    ordered_manifests = [
+        "puller-sa.yaml",
+        "puller-role.yaml",
+        "puller-rolebinding.yaml",
+        "puller-deployment.yaml"
+    ]
+
+    for fname in ordered_manifests:
         path = os.path.join(MANIFEST_DIR, fname)
-        
-        # Leer y parchear namespace en el manifiesto
+        if not os.path.exists(path):
+            continue
+
         with open(path) as f:
             content = f.read()
-        
-        # Si en los archivos viene un namespace fijo, lo reemplazamos:
+
         content = content.replace(
             "namespace: PLACE_HOLDER",
             f"namespace: {ns_name}"
         )
 
-        # Crear un archivo temporal para utils.create_from_yaml
         with tempfile.NamedTemporaryFile("w+", suffix=".yaml") as tmp:
             tmp.write(content)
             tmp.flush()
