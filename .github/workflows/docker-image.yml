@@ -45,3 +45,8 @@ jobs:
       run: |
         docker build ./observer -t ${{ secrets.DOCKERHUB_USERNAME }}/python-observer_kubernetes-redis:latest
         docker push ${{ secrets.DOCKERHUB_USERNAME }}/python-observer_kubernetes-redis:latest
+
+    - name: Build and push autoscaler  image
+      run: |
+        docker build ./autoscaler -t ${{ secrets.DOCKERHUB_USERNAME }}/python-autoscaler_kubernetes-redis:latest
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/python-autoscaler_kubernetes-redis:latest
