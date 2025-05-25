@@ -72,7 +72,7 @@ def delete_namespace(ns_name: str):
     core_v1.delete_namespace(ns_name)
 
 def get_pending_jobs() -> int:
-    return r.llen("pending_jobs")
+    return r.llen("pending_tasks")
 
 def main_loop():
     namespaces = list_namespaces()
