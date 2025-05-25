@@ -2,7 +2,7 @@ apiVersion: v1
 kind: ConfigMap
 metadata:
   name: puller-yamls
-  namespace: autoscaler
+  namespace: distributed-fractals
 data:
   puller-deployment.yaml: |
     apiVersion: apps/v1

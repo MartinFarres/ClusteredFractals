@@ -2,11 +2,11 @@ apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
   name: autoscaler-rolebinding
-  namespace: autoscaler
+  namespace: distributed-fractals
 subjects:
   - kind: ServiceAccount
     name: autoscaler-sa
-    namespace: autoscaler
+    namespace: distributed-fractals
 roleRef:
   kind: Role
   name: autoscaler-role

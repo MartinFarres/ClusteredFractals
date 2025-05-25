@@ -72,6 +72,12 @@ def get_pending_jobs() -> int:
     return r.llen("pending_jobs")
 
 def main_loop():
+    namespaces = list_namespaces()
+    if not namespaces:
+        print("[Autoscaler] No hay namespaces, creando DS-CLMPI1 de arranque")
+        deploy_namespace(f"{NAMESPACE_PREFIX}1")
+        namespaces = list_namespaces()
+    
     while True:
         jobs       = get_pending_jobs()
         namespaces = list_namespaces()

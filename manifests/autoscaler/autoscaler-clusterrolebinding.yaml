@@ -4,7 +4,7 @@ metadata: { name: autoscaler-crb }
 subjects:
   - kind: ServiceAccount
     name: autoscaler-sa
-    namespace: autoscaler
+    namespace: distributed-fractals
 roleRef:
   kind: ClusterRole
   name: autoscaler-cr
