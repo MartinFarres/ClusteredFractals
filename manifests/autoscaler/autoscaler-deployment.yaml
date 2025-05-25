@@ -17,6 +17,7 @@ spec:
       containers:
         - name: autoscaler
           image: martinfarres/python-autoscaler_kubernetes-redis:latest
+          imagePullPolicy: Always
           env:
             - name: REDIS_HOST
               value: redis 

@@ -7,7 +7,7 @@ from kubernetes.client import ApiException
 
 # --- AutoScaling constants --- 
 THRESHOLD        = float(os.getenv("SCALING_THRESHOLD", 10.0))
-NAMESPACE_PREFIX = "DS-CLMPI"
+NAMESPACE_PREFIX = "ds-clmpi"
 MANIFEST_DIR     = "/manifests"   # <-- montado desde el ConfigMap
 
 # --- Redis setup ---
