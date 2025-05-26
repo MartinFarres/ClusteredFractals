@@ -22,6 +22,9 @@ RUN apt-get update && \
     nano \
     sudo \
     sshpass \
+    python3 \
+    python3-pip \
+    python3-redis \
     && rm -rf /var/lib/apt/lists/*
 
 # Crear usuario mpi-user con home y bash shell
@@ -61,7 +64,9 @@ EXPOSE 22
 
 # Copiar el script de entrada
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod a+x /entrypoint.sh
+COPY socket_handler.py /home/mpi-user/socket_handler.py
+RUN chmod +x /entrypoint.sh && \
+    chown mpi-user:mpi-user /home/mpi-user/socket_handler.py
 
 # Cambiar al usuario normal
 USER mpi-user

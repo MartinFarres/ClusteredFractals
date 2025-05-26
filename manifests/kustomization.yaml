@@ -16,10 +16,4 @@ resources:
   - autoscaler/autoscaler-serviceaccount.yaml
   - client/client-deployment.yaml
   - client/client-service.yaml
-  # - puller/puller-sa.yaml
-  # - puller/puller-role.yaml
-  # - puller/puller-rolebinding.yaml
-  # - puller/puller-clusterrole.yaml      
-  # - puller/puller-clusterrolebinding.yaml  
-  # - puller/puller-deployment.yaml
 
