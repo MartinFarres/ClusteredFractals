@@ -256,7 +256,7 @@ def main_loop():
         mpi_pods = wait_for_all_nodes_ready()
 
         # 2) Asegurar Observer
-        ensure_observer_deployed(mpi_pods[0])
+        ensure_observer_deployed(mpi_pods[0].metadata.name)
         wait_for_observer_ready()
 
         # 3) Ejecutar MPI
