@@ -108,10 +108,12 @@ def wait_for_all_nodes_ready():
 
 # --- Observer Deployment generator & scaler ---
 def create_observer_deployment():
+    env_vars = [client.V1EnvVar(name="REDIS_HOST", value=redis_host)]
     container = client.V1Container(
         name="observer",
         image=OBSERVER_IMAGE,
         image_pull_policy="Always",
+        env=env_vars,
         ports=[client.V1ContainerPort(container_port=8080)]
     )
     spec = client.V1DeploymentSpec(
