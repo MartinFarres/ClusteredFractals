@@ -6,19 +6,17 @@ import threading
 # Redis client
 r = redis.Redis(host='redis.distributed-fractals', port=6379, db=0)
 
-done = False
 
 def run_server():
     HOST = '0.0.0.0'
     PORT = 5001
-    global done
     server_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
     server_socket.bind((HOST, PORT))
     server_socket.listen()
     server_socket.settimeout(1.0)  # Set timeout for accept()
 
     print(f"Server is listening on port {PORT}")
-    while not done:
+    while True:
         try:
             client_socket, _ = server_socket.accept()
         except socket.timeout:
@@ -49,7 +47,6 @@ def run_server():
         finally:
             client_socket.close()
 
-    server_socket.close()
 
 def recv_exact(sock, num_bytes):
     """Receive exactly num_bytes from the socket."""
@@ -62,4 +59,6 @@ def recv_exact(sock, num_bytes):
     return data
 
 if __name__ == '__main__':
-    threading.Thread(target=run_server, daemon=True).start()
+    server_thread = threading.Thread(target=run_server, daemon=False)
+    server_thread.start()
+    server_thread.join()
