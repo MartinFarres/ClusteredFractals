@@ -85,7 +85,7 @@ data:
                 - name: SLOTS_PER_NODE
                   value: "2"
                 - name: MPI_IMAGE
-                  value: "martinfarres/mpi-node:slim"
+                  value: "martinfarres/mpi-node:latests"
                 - name: OBSERVER_IMAGE
                   value: "martinfarres/python-observer_kubernetes-redis:latest"
           # imagePullSecrets:
