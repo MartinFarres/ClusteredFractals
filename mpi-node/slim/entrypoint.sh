@@ -9,7 +9,7 @@ if [ ! -f "/home/mpi-user/.ssh/id_rsa" ]; then
 fi
 
 # Start the Python socket server in the background
-python3 /home/mpi-user/socker_handler.py &
+python3 /home/mpi-user/socket_handler.py &
 
 # Keep container running
 exec tail -f /dev/null
