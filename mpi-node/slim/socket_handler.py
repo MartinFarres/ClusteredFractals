@@ -42,7 +42,7 @@ def run_server():
             img_data = recv_exact(client_socket, buf_size)
 
             # Step 5: Updates redis with image
-            r.hset('images', job_uuid, img_data)
+            r.hset('completed_tasks', job_uuid, img_data)
 
         finally:
             client_socket.close()
