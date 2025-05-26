@@ -63,4 +63,11 @@ def watch_logs():
 
 
 if __name__ == "__main__":
-    watch_logs()
+    while True:
+        try:
+            watch_logs()
+        except Exception as e:
+            print(f"watch_logs raised an exception: {e}")
+        # Espera breve antes de volver a iniciar el watch
+        time.sleep(5)
+

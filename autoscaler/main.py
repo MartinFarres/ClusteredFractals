@@ -99,7 +99,7 @@ def main_loop():
             last_ns = namespaces[-1]
             delete_namespace(last_ns)
 
-        time.sleep(10)
+        time.sleep(2)
 
 if __name__ == "__main__":
     main_loop()
