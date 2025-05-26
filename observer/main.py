@@ -1,4 +1,3 @@
-"""
 import os
 import redis
 import time
@@ -33,7 +32,7 @@ def watch_logs():
 
     w = watch.Watch()
     try:
-        #lee logs en tiempo real
+        # lee logs en tiempo real
         for line in w.stream(v1.read_namespaced_pod_log, name=MASTER_POD, namespace=NAMESPACE, follow=True, _preload_content=True):
             line = line.strip()
             print("Log:", line)
@@ -44,10 +43,10 @@ def watch_logs():
             elif "fail" in line.lower():
                 update_job_status("fail")
                 break
-            #caso de un mensaje como "Progress: 84.3%"
+            # caso de un mensaje como "Progress: 84.3%"
             elif "%" in line:
                 try:
-                    #Toma el porcentaje y si no cambió por más de 60 segs lo toma como fail"
+                    # Toma el porcentaje y si no cambió por más de 60 segs lo toma como fail"
                     percent = float(line.split("%")[0].split()[-1])
                     if percent == last_percent:
                         if same_percent_time and time.time() - same_percent_time > 60:  # 1 min stuck
@@ -65,5 +64,3 @@ def watch_logs():
 
 if __name__ == "__main__":
     watch_logs()
-
-"""
