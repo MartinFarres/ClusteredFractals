@@ -107,8 +107,10 @@ def wait_for_all_nodes_ready():
         time.sleep(2)
 
 # --- Observer Deployment generator & scaler ---
-def create_observer_deployment():
-    env_vars = [client.V1EnvVar(name="REDIS_HOST", value=redis_host)]
+def create_observer_deployment(master_pod_name):
+    env_vars = [client.V1EnvVar(name="REDIS_HOST", value=redis_host), 
+                client.V1EnvVar(name="POD_NAMESPACE", value=NAMESPACE), 
+                client.V1EnvVar(name="MASTER_POD", value=master_pod_name)]
     container = client.V1Container(
         name="observer",
         image=OBSERVER_IMAGE,
@@ -135,7 +137,7 @@ def create_observer_deployment():
         if e.status != 409:
             raise
 
-def ensure_observer_deployed():
+def ensure_observer_deployed(master_pod_name):
     try:
         dep = apps_v1.read_namespaced_deployment(OBSERVER_DEPLOYMENT, NAMESPACE)
         if dep.spec.replicas != OBSERVER_REPLICAS:
@@ -147,7 +149,7 @@ def ensure_observer_deployed():
             print(f"Observer already at {OBSERVER_REPLICAS} replicas.")
     except ApiException as e:
         if e.status == 404:
-            create_observer_deployment()
+            create_observer_deployment(master_pod_name)
         else:
             raise
 
@@ -254,7 +256,7 @@ def main_loop():
         mpi_pods = wait_for_all_nodes_ready()
 
         # 2) Asegurar Observer
-        ensure_observer_deployed()
+        ensure_observer_deployed(mpi_pods[0])
         wait_for_observer_ready()
 
         # 3) Ejecutar MPI

@@ -7,10 +7,10 @@ from kubernetes import client, config, watch
 # --- Setup ---
 config.load_incluster_config()
 v1 = client.CoreV1Api()
-redis_host = os.getenv("REDIS_HOST", "localhost")
+redis_host = os.getenv("REDIS_HOST", "redis")
 r = redis.Redis(host=redis_host, port=6379, db=0)
 NAMESPACE = os.getenv("POD_NAMESPACE", "default")
-MASTER_POD = "mpi-node-0"
+MASTER_POD = os.getenv("MASTER_POD", "mpi-node-0")
 
 # --- Update Redis status ---
 def update_job_status(new_status):
