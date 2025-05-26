@@ -63,7 +63,7 @@ EXPOSE 22
 
 # Copy entrypoint and socket handler
 COPY entrypoint.sh /entrypoint.sh
-COPY socker_handler.py /home/mpi-user/socker_handler.py
+COPY socket_handler.py /home/mpi-user/socker_handler.py
 
 # Make entrypoint executable and configure to start socket handler
 RUN chmod +x /entrypoint.sh && \
