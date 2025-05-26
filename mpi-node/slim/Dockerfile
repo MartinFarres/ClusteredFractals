@@ -38,11 +38,9 @@ RUN apt-get update && \
       openssh-server \
       sshpass \
       python3 \
-      python3-pip && \
+      python3-pip \
+      python3-redis && \
     rm -rf /var/lib/apt/lists/*
-
-# Install Python Redis client
-RUN pip3 install redis
 
 # Create mpi-user with sudo & ssh setup
 RUN useradd -m -s /bin/bash mpi-user && \
@@ -63,13 +61,9 @@ EXPOSE 22
 
 # Copy entrypoint and socket handler
 COPY entrypoint.sh /entrypoint.sh
-COPY socket_handler.py /home/mpi-user/socker_handler.py
-
-# Make entrypoint executable and configure to start socket handler
+COPY socket_handler.py /home/mpi-user/socket_handler.py
 RUN chmod +x /entrypoint.sh && \
-    echo "# start socket server in background" >> /entrypoint.sh && \
-    echo "python3 /home/mpi-user/socker_handler.py &" >> /entrypoint.sh && \
-    chown mpi-user:mpi-user /home/mpi-user/socker_handler.py
+    chown mpi-user:mpi-user /home/mpi-user/socket_handler.py
 
 USER mpi-user
 WORKDIR /home/mpi-user
