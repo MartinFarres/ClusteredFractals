@@ -12,7 +12,7 @@ v1 = client.CoreV1Api()
 redis_host = os.getenv("REDIS_HOST", "redis")
 r = redis.Redis(host=redis_host, port=6379, db=0)
 
-NAMESPACE  = os.getenv("POD_NAMESPACE", "default")
+NAMESPACE  = os.getenv("POD_NAMESPACE")
 MASTER_POD = os.getenv("MASTER_POD", "mpi-node-0")
 
 # --- Update Redis status ---
@@ -24,15 +24,14 @@ def update_job_status(new_status):
             data["status"] = new_status
             r.lrem("running_tasks", 0, task)
             r.lpush("running_tasks", json.dumps(data))
-            print(f"[Observer] Updated status to '{new_status}' for job in namespace '{NAMESPACE}'")
+            print(f"[Observer] Updated status to '{new_status}' for namespace '{NAMESPACE}'")
             break
 
-# --- Watch master logs indefinitely ---
+# --- Watch master logs ---
 def watch_logs():
     w = watch.Watch()
     waiting_for_task = True
 
-    # For STATUS tracking
     last_percent = None
     percent_timestamp = None
     STUCK_TIMEOUT = 60  # seconds
@@ -44,16 +43,16 @@ def watch_logs():
             name=MASTER_POD,
             namespace=NAMESPACE,
             follow=True,
-            _preload_content=True,   # lines as str
-            since_seconds=2,
-            timeout_seconds=300
+            _preload_content=True,
+            since_seconds=2
         ):
             line = line.strip()
             if not line:
                 continue
+
             print(f"[Master Log] {line}")
 
-            # 1) Wait for task start
+            # 1) Espera a [Task]
             if waiting_for_task:
                 if "[Task]" in line:
                     waiting_for_task = False
@@ -62,9 +61,9 @@ def watch_logs():
                     print("[Observer] Detected start of new task")
                 continue
 
-            # 2) Monitor task
+            # 2) Ya en medio de la tarea...
 
-            # Success
+            # Éxito
             if "[SUCCESS]" in line:
                 update_job_status("success")
                 waiting_for_task = True
@@ -78,7 +77,7 @@ def watch_logs():
                 print("[Observer] Task failed, returning to waiting state")
                 continue
 
-            # Progress
+            # Progreso intermedio
             if "[STATUS]" in line and "%" in line:
                 try:
                     percent = float(line.split("%")[0].split()[-1])
