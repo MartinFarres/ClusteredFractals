@@ -16,6 +16,7 @@ def main():
     args = sys.argv[2:]
 
     try:
+        print("[TASK] Master is running...")
         subprocess.run([program] + args, check=True)
         print("[SUCCESS] Program finished with exit code 0")
     except subprocess.CalledProcessError as e:
