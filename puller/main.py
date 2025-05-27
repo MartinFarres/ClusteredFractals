@@ -201,9 +201,12 @@ def run_mpi_on_master(master_pod, pods, args, job_uuid):
         f"{' '.join(args)} -on 0.0.0.0 5001 {job_uuid}"
     )
     print(f"Running MPI command: {mpi_cmd}")
+
+    run_and_check_cmd = f"python3 /home/mpi-user/run_and_check.py {mpi_cmd}"
+
     output = stream(v1.connect_get_namespaced_pod_exec,
            name=master_pod, namespace=NAMESPACE,
-           command=["/bin/bash", "-l", "-c", mpi_cmd],
+           command=["/bin/bash", "-l", "-c", run_and_check_cmd],
            stderr=True, stdin=False, stdout=True, tty=False)
     print(output)
     print("MPI job initiated.")
