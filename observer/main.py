@@ -14,13 +14,13 @@ MASTER_POD = os.getenv("MASTER_POD", "mpi-node-0")
 
 # --- Update Redis status ---
 def update_job_status(new_status):
-    tasks = r.lrange("running_task", 0, -1)
+    tasks = r.lrange("running_tasks", 0, -1)
     for task in tasks:
         data = json.loads(task)
         if data.get("name_space") == NAMESPACE:
             data["status"] = new_status
-            r.lrem("running_task", 0, task)
-            r.lpush("running_task", json.dumps(data))
+            r.lrem("running_tasks", 0, task)
+            r.lpush("running_tasks", json.dumps(data))
             print(f"Updated status to '{new_status}' for job in namespace '{NAMESPACE}'")
             return
 

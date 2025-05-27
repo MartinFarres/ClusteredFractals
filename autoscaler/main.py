@@ -102,7 +102,7 @@ def auto_scaling():
 
 def tasks_status_check():
     running_tasks = get_running_tasks()
-
+    
     for task_data in running_tasks:
         try:
             task = json.loads(task_data.decode('utf-8'))
