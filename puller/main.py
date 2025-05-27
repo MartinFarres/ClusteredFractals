@@ -247,7 +247,7 @@ def main_loop():
         data["name_space"] = NAMESPACE
 
         # Push a running_task
-        r.lpush("running_task", json.dumps(data))
+        r.lpush("running_tasks", json.dumps(data))
         print("Pushed to running_task.")
 
         # Build MPI args
