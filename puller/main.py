@@ -242,16 +242,16 @@ def main_loop():
         data     = json.loads(job)
         job_uuid = data.pop("uuid", None)
 
-        # Añadir campos status y name_space
+        # Añadir campos status y namespace
         data["status"]     = ""
-        data["name_space"] = NAMESPACE
+        data["namespace"] = NAMESPACE
 
         # Push a running_task
         r.lpush("running_tasks", json.dumps(data))
         print("Pushed to running_task.")
 
         # Build MPI args
-        filtered = {k: v for k, v in data.items() if k not in ["status", "name_space"]}
+        filtered = {k: v for k, v in data.items() if k not in ["status", "namespace"]}
         mpi_args = build_mpi_args(filtered)
 
         # 1) Asegurar MPI‐nodes

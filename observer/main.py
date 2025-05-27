@@ -17,7 +17,7 @@ def update_job_status(new_status):
     tasks = r.lrange("running_tasks", 0, -1)
     for task in tasks:
         data = json.loads(task)
-        if data.get("name_space") == NAMESPACE:
+        if data.get("namespace") == NAMESPACE:
             data["status"] = new_status
             r.lrem("running_tasks", 0, task)
             r.lpush("running_tasks", json.dumps(data))
