@@ -208,7 +208,11 @@ def run_mpi_on_master(master_pod, pods, args, job_uuid):
     )
     print(f"Running MPI command: {mpi_cmd}")
 
-    run_and_check_cmd = f"python3 /home/mpi-user/run_and_check.py {mpi_cmd}"
+    run_and_check_cmd = (
+        f"python3 /home/mpi-user/run_and_check.py {mpi_cmd} "
+        # redirige stdout → fd 1, stderr → fd 2
+        f">/proc/1/fd/1 2>/proc/1/fd/2"
+    )
 
     output = stream(v1.connect_get_namespaced_pod_exec,
            name=master_pod, namespace=NAMESPACE,

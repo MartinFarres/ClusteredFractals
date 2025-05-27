@@ -1,30 +1,25 @@
 #!/usr/bin/env python3
-"""
-Simple python script that runs the given program and forwards command line arguments. 
-For exit code 0 outputs [SUCCESS]. 
-For exit code 1 outputs [ERROR].
-"""
 import subprocess
 import sys
 
 def main():
     if len(sys.argv) < 2:
-        print("[ERROR] Usage: run_and_check.py <program> [args...]")
+        print("[ERROR] Usage: run_and_check.py <program> [args...]", flush=True)
         sys.exit(1)
 
     program = sys.argv[1]
     args = sys.argv[2:]
 
     try:
-        print("[TASK] Master is running...")
+        print("[TASK] Master is running...", flush=True)
         subprocess.run([program] + args, check=True)
-        print("[SUCCESS] Program finished with exit code 0")
+        print("[SUCCESS] Program finished with exit code 0", flush=True)
     except subprocess.CalledProcessError as e:
-        print(f"[ERROR] Program exited with code {e.returncode}")
+        print(f"[ERROR] Program exited with code {e.returncode}", flush=True)
     except FileNotFoundError:
-        print(f"[ERROR] Program '{program}' not found")
+        print(f"[ERROR] Program '{program}' not found", flush=True)
     except Exception as e:
-        print(f"[ERROR] Unexpected exception: {str(e)}")
+        print(f"[ERROR] Unexpected exception: {str(e)}", flush=True)
 
 if __name__ == "__main__":
     main()
