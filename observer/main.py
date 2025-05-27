@@ -25,6 +25,7 @@ def update_job_status(new_status):
             r.lpush("running_tasks", json.dumps(data))
             print(f"[Observer] Updated status to '{new_status}' for namespace '{NAMESPACE}'")
             break
+
 def pod_is_running():
     try:
         pod = v1.read_namespaced_pod(name=MASTER_POD, namespace=NAMESPACE)
@@ -118,6 +119,11 @@ def watch_logs():
             return
 
         finally:
+            if not pod_is_running():
+                print("[Observer] Pod not running during final check. Marking task as failed.")
+                update_job_status("fail")
+                return
+
             w.stop()
             print(f"[Observer] Log stream ended. Retrying in {RETRY_DELAY}s...")
             time.sleep(RETRY_DELAY)
