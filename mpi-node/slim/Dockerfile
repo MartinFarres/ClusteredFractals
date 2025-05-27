@@ -5,14 +5,14 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install build dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      git \
-      ca-certificates \
-      cmake \
-      build-essential \
-      openmpi-bin \
-      libopenmpi-dev \
-      libpng-dev \
-      libz-dev && \
+    git \
+    ca-certificates \
+    cmake \
+    build-essential \
+    openmpi-bin \
+    libopenmpi-dev \
+    libpng-dev \
+    libz-dev && \
     rm -rf /var/lib/apt/lists/*
 
 # Clone and build the project
@@ -30,16 +30,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Install runtime-only dependencies
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
-      openmpi-bin \
-      libopenmpi3 \
-      libpng16-16 \
-      libz1 \
-      sudo \
-      openssh-server \
-      sshpass \
-      python3 \
-      python3-pip \
-      python3-redis && \
+    openmpi-bin \
+    libopenmpi3 \
+    libpng16-16 \
+    libz1 \
+    sudo \
+    openssh-server \
+    sshpass \
+    python3 \
+    python3-pip \
+    python3-redis && \
     rm -rf /var/lib/apt/lists/*
 
 # Create mpi-user with sudo & ssh setup
@@ -62,8 +62,9 @@ EXPOSE 22
 # Copy entrypoint and socket handler
 COPY entrypoint.sh /entrypoint.sh
 COPY socket_handler.py /home/mpi-user/socket_handler.py
+COPY run_and_check.py /home/mpi-user/run_and_check.py
 RUN chmod +x /entrypoint.sh && \
-    chown mpi-user:mpi-user /home/mpi-user/socket_handler.py
+    chown mpi-user:mpi-user /home/mpi-user/socket_handler.py /home/mpi-user/run_and_check.py
 
 USER mpi-user
 WORKDIR /home/mpi-user
