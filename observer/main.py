@@ -12,8 +12,8 @@ v1 = client.CoreV1Api()
 redis_host = os.getenv("REDIS_HOST", "redis")
 r = redis.Redis(host=redis_host, port=6379, db=0)
 
-NAMESPACE  = os.getenv("POD_NAMESPACE", "default")
-MASTER_POD = os.getenv("MASTER_POD", "mpi-node-0")
+NAMESPACE  = os.getenv("POD_NAMESPACE")
+MASTER_POD = os.getenv("MASTER_POD")
 
 # --- Update Redis status ---
 def update_job_status(new_status):

@@ -16,7 +16,7 @@ redis_host = os.getenv("REDIS_HOST", "redis")
 r = redis.Redis(host=redis_host, port=6379, db=0)
 
 # --- Dynamic Namespace from env ---
-NAMESPACE = os.getenv("POD_NAMESPACE", "default")
+NAMESPACE = os.getenv("POD_NAMESPACE")
 
 # --- MPI‐nodes constants ---
 STATEFULSET_NAME = "mpi-node"
