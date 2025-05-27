@@ -48,7 +48,7 @@ def watch_logs():
             return
 
         w = watch.Watch()
-        waiting_for_task = True
+        task_in_progress = False
         last_percent = None
         percent_timestamp = None
 
@@ -68,23 +68,22 @@ def watch_logs():
 
                 print(f"[Master Log] {line}")
 
-                if waiting_for_task:
-                    if "[TASK]" in line:
-                        waiting_for_task = False
-                        last_percent = None
-                        percent_timestamp = time.time()
-                        print("[Observer] Detected start of new task")
+                if "[TASK]" in line:
+                    task_in_progress = True
+                    last_percent = None
+                    percent_timestamp = time.time()
+                    print("[Observer] Detected start of new task")
                     continue
 
                 if "[SUCCESS]" in line:
                     update_job_status("success")
-                    waiting_for_task = True
+                    task_in_progress = False
                     print("[Observer] Task succeeded")
                     continue
 
                 if "[ERROR]" in line:
                     update_job_status("fail")
-                    waiting_for_task = True
+                    task_in_progress = False
                     print("[Observer] Task failed")
                     continue
 
@@ -102,7 +101,7 @@ def watch_logs():
                     else:
                         if now - percent_timestamp > STUCK_TIMEOUT:
                             update_job_status("fail")
-                            waiting_for_task = True
+                            task_in_progress = False
                             print(f"[Observer] No progress for {STUCK_TIMEOUT}s, marking as failed")
                     continue
 
@@ -110,24 +109,34 @@ def watch_logs():
             print(f"[Observer] K8s API error: {e}")
             if e.status in [404, 410, 500]:
                 print("[Observer] Lost connection with master pod or pod deleted.")
-                update_job_status("fail")
+                if task_in_progress:
+                    print("[Observer] Task was in progress. Marking as failed.")
+                    update_job_status("fail")
                 return
 
         except Exception as e:
             print(f"[Observer] Unexpected error: {e}")
-            update_job_status("fail")
+            if task_in_progress:
+                update_job_status("fail")
+                print("[Observer] Task was in progress. Marking as failed due to unexpected error.")
             return
 
         finally:
+            w.stop()
             if not pod_is_running():
-                print("[Observer] Pod not running during final check. Marking task as failed.")
-                update_job_status("fail")
+                print("[Observer] Pod not running during final check.")
+                if task_in_progress:
+                    update_job_status("fail")
+                    print("[Observer] Task was in progress. Marking as failed.")
                 return
 
-            w.stop()
+            if task_in_progress:
+                print("[Observer] Log stream ended during task. Marking task as failed.")
+                update_job_status("fail")
+                return  # No retry
+
             print(f"[Observer] Log stream ended. Retrying in {RETRY_DELAY}s...")
             time.sleep(RETRY_DELAY)
-
 
 if __name__ == "__main__":
     watch_logs()  
