@@ -37,14 +37,14 @@ def watch_logs():
             line = line.strip()
             print("Log:", line)
 
-            if "success" in line.lower():
+            if "[SUCCESS]" in line.lower():
                 update_job_status("success")
                 break
-            elif "fail" in line.lower():
+            elif "[ERROR]" in line.lower():
                 update_job_status("fail")
                 break
             # caso de un mensaje como "Progress: 84.3%"
-            elif "%" in line:
+            elif "[STATUS]" in line and "%" in line:
                 try:
                     # Toma el porcentaje y si no cambió por más de 60 segs lo toma como fail"
                     percent = float(line.split("%")[0].split()[-1])
