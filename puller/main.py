@@ -243,8 +243,16 @@ def build_mpi_args(data):
 def main_loop():
     print("Puller started. Listening for tasks in Redis…")
     while True:
-        job = r.lpop("pending_tasks")
-        if not job:
+        if r.llen("pending_tasks") > 0:
+            ensure_mpi_deployed()
+            mpi_pods = wait_for_all_nodes_ready()
+            ensure_observer_deployed(mpi_pods[0].metadata.name)
+            wait_for_observer_ready()
+            
+            job = r.lpop("pending_tasks")
+            if not job:
+                continue  # pudo haber alguien más leyendo
+        else:
             time.sleep(1)
             continue
 
