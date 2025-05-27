@@ -12,8 +12,8 @@ v1 = client.CoreV1Api()
 redis_host = os.getenv("REDIS_HOST", "redis")
 r = redis.Redis(host=redis_host, port=6379, db=0)
 
-NAMESPACE  = os.getenv("POD_NAMESPACE")
-MASTER_POD = os.getenv("MASTER_POD")
+NAMESPACE  = os.getenv("POD_NAMESPACE", "default")
+MASTER_POD = os.getenv("MASTER_POD", "mpi-node-0")
 
 # --- Update Redis status ---
 def update_job_status(new_status):
@@ -32,72 +32,70 @@ def watch_logs():
     w = watch.Watch()
     waiting_for_task = True
 
-    # Para STATUS
+    # For STATUS tracking
     last_percent = None
     percent_timestamp = None
-    STUCK_TIMEOUT = 60  # segundos
+    STUCK_TIMEOUT = 60  # seconds
 
     print("[Observer] Starting log watch...")
     try:
-        for raw in w.stream(
+        for line in w.stream(
             v1.read_namespaced_pod_log,
             name=MASTER_POD,
             namespace=NAMESPACE,
             follow=True,
-            _preload_content=True,    # <-- línea completa
-            tail_lines=1   
+            _preload_content=True,   # lines as str
+            since_seconds=2,
+            timeout_seconds=300
         ):
-            line = raw.decode('utf-8', errors='ignore').strip()
+            line = line.strip()
+            if not line:
+                continue
             print(f"[Master Log] {line}")
 
-            # 1) Buscamos el inicio de la tarea
+            # 1) Wait for task start
             if waiting_for_task:
                 if "[Task]" in line:
                     waiting_for_task = False
                     last_percent = None
                     percent_timestamp = time.time()
                     print("[Observer] Detected start of new task")
-                continue  # seguimos leyendo
+                continue
 
-            # 2) Una vez que la tarea arrancó...
+            # 2) Monitor task
 
-            # 2a) Éxito o fallo explícito
+            # Success
             if "[SUCCESS]" in line:
                 update_job_status("success")
                 waiting_for_task = True
                 print("[Observer] Task succeeded, returning to waiting state")
-                break
+                continue
 
+            # Error
             if "[ERROR]" in line:
                 update_job_status("fail")
                 waiting_for_task = True
                 print("[Observer] Task failed, returning to waiting state")
-                break
+                continue
 
-            # 2b) Progreso intermedio
+            # Progress
             if "[STATUS]" in line and "%" in line:
                 try:
-                    # extraer el número antes de '%'
                     percent = float(line.split("%")[0].split()[-1])
                 except ValueError:
                     continue
 
                 now = time.time()
                 if last_percent is None or percent != last_percent:
-                    # primer dato o cambio de porcentaje
                     last_percent = percent
                     percent_timestamp = now
                     print(f"[Observer] Progress updated to {percent}%")
                 else:
-                    # porcentaje igual al anterior
                     if now - percent_timestamp > STUCK_TIMEOUT:
                         update_job_status("fail")
                         waiting_for_task = True
                         print(f"[Observer] No progress for {STUCK_TIMEOUT}s, marking task as failed")
-                        break
                 continue
-
-            # otros logs se ignoran...
 
     except ApiException as e:
         print(f"[Observer] K8s API error: {e}")
@@ -111,5 +109,4 @@ def watch_logs():
 if __name__ == "__main__":
     while True:
         watch_logs()
-        # brevemente esperamos antes de reconectar
         time.sleep(2)

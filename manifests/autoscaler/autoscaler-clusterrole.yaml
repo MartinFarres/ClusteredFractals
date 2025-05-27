@@ -8,13 +8,18 @@ rules:
     resources: ["namespaces"]
     verbs: ["get", "list", "create", "delete"]
 
-  # Pods
+  # Pods (para watch/list/get de pods)
   - apiGroups: [""]
     resources: ["pods"]
     verbs: ["get", "list", "watch"]
   - apiGroups: [""]
     resources: ["pods/exec"]
     verbs: ["get", "create"]
+
+  # Logs de pods (necesario para crear observer-role que otorgue pods/log)
+  - apiGroups: [""]
+    resources: ["pods/log"]
+    verbs: ["get", "list", "watch"]
 
   # Services
   - apiGroups: [""]
