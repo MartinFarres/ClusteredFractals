@@ -37,10 +37,10 @@ def watch_logs():
             line = line.strip()
             print("Log:", line)
 
-            if "[SUCCESS]" in line.lower():
+            if "[SUCCESS]" in line:
                 update_job_status("success")
                 break
-            elif "[ERROR]" in line.lower():
+            elif "[ERROR]" in line:
                 update_job_status("fail")
                 break
             # caso de un mensaje como "Progress: 84.3%"
