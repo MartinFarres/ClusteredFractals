@@ -118,12 +118,18 @@ def create_observer_deployment(master_pod_name):
         env=env_vars,
         ports=[client.V1ContainerPort(container_port=8080)]
     )
+
+    pod_spec = client.V1PodSpec(
+        service_account_name="observer-sa",  # <— tu ServiceAccount para el observer
+        containers=[container]
+    )
+
     spec = client.V1DeploymentSpec(
         replicas=OBSERVER_REPLICAS,
         selector=client.V1LabelSelector(match_labels={"app": OBSERVER_DEPLOYMENT}),
         template=client.V1PodTemplateSpec(
             metadata=client.V1ObjectMeta(labels={"app": OBSERVER_DEPLOYMENT}),
-            spec=client.V1PodSpec(containers=[container])
+            spec=pod_spec
         )
     )
     deploy = client.V1Deployment(

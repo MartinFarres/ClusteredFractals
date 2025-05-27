@@ -91,3 +91,37 @@ data:
           # imagePullSecrets:
           #   - passuser: mpi-password
 
+  # ---- Observer RBAC ----
+  observer-sa.yaml: |
+    apiVersion: v1
+    kind: ServiceAccount
+    metadata:
+      name: observer-sa
+      namespace: PLACE_HOLDER
+
+  observer-role.yaml: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: Role
+    metadata:
+      name: observer-role
+      namespace: PLACE_HOLDER
+    rules:
+      - apiGroups: [""]
+        resources: ["pods/log","pods"]
+        verbs: ["get","list","watch"]
+
+  observer-rolebinding.yaml: |
+    apiVersion: rbac.authorization.k8s.io/v1
+    kind: RoleBinding
+    metadata:
+      name: observer-rb
+      namespace: PLACE_HOLDER
+    subjects:
+      - kind: ServiceAccount
+        name: observer-sa
+        namespace: PLACE_HOLDER
+    roleRef:
+      kind: Role
+      name: observer-role
+      apiGroup: rbac.authorization.k8s.io
+

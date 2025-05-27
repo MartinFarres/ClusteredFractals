@@ -43,7 +43,10 @@ def deploy_namespace(ns_name: str):
         "puller-sa.yaml",
         "puller-role.yaml",
         "puller-rolebinding.yaml",
-        "puller-deployment.yaml"
+        "puller-deployment.yaml",
+        "observer-sa.yaml",
+        "observer-role.yaml",
+        "observer-rolebinding.yaml",
     ]
 
     for fname in ordered_manifests:
