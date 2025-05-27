@@ -59,6 +59,8 @@ def get_image(uuid):
             return jsonify({'error':'UUID not found'}), 404
         if image == b'':
             return jsonify({'message':'Still processing'}), 202
+
+        r.hdel('completed_tasks', uuid)
         return Response(image, mimetype='image/png'), 200
 
     except redis.RedisError as e:
