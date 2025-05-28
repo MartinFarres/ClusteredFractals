@@ -19,13 +19,48 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
 
 
 1. **Client** submits fractal parameters via REST to the **Server**.
-2. **Server** enqueues a job in **Redis** (`RPUSH mpi_jobs ...`).
-3. **Puller** watches Redis, then uses the Kubernetes API to:
-   - Ensure the MPI StatefulSet (headless service + pods) is deployed
-   - Wait for pods to become ready
-   - Generate a hostfile and distribute SSH keys
-   - Invoke `mpirun` on the master pod
-4. The MPI C++ binary runs, writes out `fractal.png`, and exits.
+2. **Server:** 
+
+   - Queues jobs in Redis (`pending_tasks`) using `RPUSH mpi_jobs...`.
+
+   - Allows the client to retrieve the image once it's ready (`completed_tasks[uuid]`).
+3. **Puller:** 
+
+   Watches Redis and uses the Kubernetes API to:
+
+    - Ensure the MPI StatefulSet (headless service + pods) is deployed
+
+    - Wait for pods to become ready
+
+    - Ensure the Observer is deployed
+
+    - Wait for the Observer to become ready
+
+    - Generate a hostfile and distribute SSH keys
+
+    - Invoke `mpirun` on the master pod
+
+4. **Observer:**
+
+   - Monitors the master pod logs
+
+   - Looks for special events in the logs (`[TASK]`, `[STATUS]`, `[SUCCESS]`, `[ERROR]`)
+
+   - Updates the task status in Redis (`running_tasks`) as `"fail"` or `"success"`
+
+5. **Autoscaler:**
+
+   - Dynamically scales Kubernetes namespaces based on the ratio of pending tasks to active namespaces
+
+   - Deploys new namespaces if the task load is high (`ratio > THRESHOLD`), or deletes the last namespace if load is low and more than one namespace exists
+
+   - Monitors task statuses in Redis (`running_tasks`):
+
+      - If a task succeeded → removes it from the queue
+
+      - If a task failed → re-queues it into `pending_tasks` and redeploys its namespace
+
+6. The MPI C++ binary runs, writes out `fractal.png`, and exits.
 
 ---
 
