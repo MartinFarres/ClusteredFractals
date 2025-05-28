@@ -118,8 +118,15 @@ def tasks_status_check():
 
             elif status == "fail":
                 r.lrem("running_tasks", 0, task_data)
+
+                # Prepare task for retry: strip status and namespace
+                retry_task = {k: v for k, v in task.items() if k not in ("status", "namespace")}
+
+
                 # push into pending_tasks
-                r.rpush("pending_tasks", json.dumps(task))
+                r.rpush("pending_tasks", json.dumps(retry_task))
+                print(f"[Status] Task failed, re-queued: {retry_task}")
+                
                 if namespace:
                     print(f"[Status] Task failed in {namespace}. Redeploying...")
                     delete_namespace(namespace)
