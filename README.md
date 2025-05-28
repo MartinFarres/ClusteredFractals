@@ -113,6 +113,10 @@ minikube start
 # Deploy all components
 kubectl apply -k manifests/
 
+# To tear down
+kubectl delete -k manifests/
+minikube stop
+
 #OPTIONAL:
 # See namespaces
 kubectl get namespaces
@@ -125,10 +129,6 @@ kubectl logs -f <pod-name> -n <namespace-name>
 
 # Monitor pods, services, deployments, etc
 kubectl get all -n <namespace-name>
-
-# To tear down
-kubectl delete -k manifests/
-minikube stop
 ```
 
 ### **Environment & Configuration**
