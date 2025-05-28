@@ -132,7 +132,15 @@ The Puller Deployment expects these env vars:
 - name: MPI_IMAGE # your mpi-node image
 - name: MPIPASS # SSH password for mpi-user
 - name: NODE_COUNT # number of replicas
+  value: "4"
 - name: SLOTS_PER_NODE # slots per node for mpirun
+  value: "2"
+- name: OBSERVER_DEPLOYMENT_NAME # name of the observer Deployment
+  value: observer
+- name: OBSERVER_IMAGE # image for the observer
+- name: OBSERVER_REPLICAS # number of observer replicas
+  value: "1"
+
 ```
 
 ### **Submitting MPI Jobs**
