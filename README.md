@@ -113,8 +113,18 @@ minikube start
 # Deploy all components
 kubectl apply -k manifests/
 
-# (optional) Monitor progress
-watch kubectl get pods -n distributed-fractals
+#OPTIONAL:
+# See namespaces
+kubectl get namespaces
+
+# Monitor pods
+watch kubectl get pods -n <namespace-name>
+
+# Monitor logs 
+kubectl logs -f <pod-name> -n <namespace-name>
+
+# Monitor pods, services, deployments, etc
+kubectl get all -n <namespace-name>
 
 # To tear down
 kubectl delete -k manifests/
@@ -145,17 +155,24 @@ The Puller Deployment expects these env vars:
 
 ### **Submitting MPI Jobs**
 
-After Redis is running, push jobs like so:
+After Redis is running:
 
 ```bash
-kubectl exec -n distributed-fractals deploy/redis -- redis-cli
+# Enter the redis pod
+kubectl exec -it <redis-pod-name> -n distributed-fractals deploy/redis -- redis-cli
 ```
 
 Inside the redis:
 
 ```bash
-RPUSH mpi_jobs '{"args":[<args>]}'
+# Push a job
+RPUSH pending_tasks '{"args":[<args>]}'
 ```
+```bash
+# Check the length of the pending_tasks or running_tasks queues
+LRANGE <queue_name> 0 -1
+```
+
 
 ### **Job Payload Format**
 
