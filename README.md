@@ -6,16 +6,22 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
 
 ## 📖 Table of Contents
 
-1. [Architecture Overview](#architecture-overview)
-2. [Local Development](#local-development)
-3. [Kubernetes Deployment](#kubernetes-deployment)
-4. [Submitting MPI Jobs](#submitting-mpi-jobs)
+- [ClusteredFractals](#clusteredfractals)
+  - [📖 Table of Contents](#-table-of-contents)
+  - [Architecture Overview](#architecture-overview)
+  - [Local Development](#local-development)
+  - [Kubernetes Deployment](#kubernetes-deployment)
+    - [**Prerequisites**](#prerequisites)
+    - [**Steps**](#steps)
+    - [**Environment \& Configuration**](#environment--configuration)
+    - [**Submitting MPI Jobs**](#submitting-mpi-jobs)
+    - [**Job Payload Format**](#job-payload-format)
 
 ---
 
 ## Architecture Overview
 
-![image](https://github.com/user-attachments/assets/a1eb9dcf-8b7c-4d00-be38-e70573be0233)
+![image](https://github.com/user-attachments/assets/b0f000c0-4c41-40b0-8a07-ba219fb09a96)
 
 
 1. **Client** submits fractal parameters via REST to the **Server**.
