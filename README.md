@@ -15,6 +15,7 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
     - [**Steps**](#steps)
     - [**Environment \& Configuration**](#environment--configuration)
     - [**Submitting MPI Jobs**](#submitting-mpi-jobs)
+    - [**Load test script**](#load-test-script)
     - [**Job Payload Format**](#job-payload-format)
 
 ---
@@ -173,6 +174,24 @@ RPUSH pending_tasks '{"args":[<args>]}'
 LRANGE <queue_name> 0 -1
 ```
 
+### **Load test script**
+
+This script (stress_test.sh) sends multiple PUT requests to the /api/submit-job endpoint to verify that the server is working correctly.
+
+It simulates light load by allowing you to adjust the number of requests and the concurrency level. It prints the HTTP status code for each request.
+
+Usage
+
+```bash
+#<IP or hostname>: The address of the server
+#[PORT]: (Optional) defaults to 30080 if not specified
+./stress_test.sh <IP or hostname> [PORT]
+```
+
+Expected Output
+
+The script prints one line per request with the HTTP response code (200, 202, 404, etc.).
+If you see 000, it means the connection failed (likely due to server not running, wrong port, or networking issue).
 
 ### **Job Payload Format**
 
