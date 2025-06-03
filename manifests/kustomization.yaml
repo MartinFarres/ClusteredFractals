@@ -16,4 +16,7 @@ resources:
   - autoscaler/autoscaler-serviceaccount.yaml
   - client/client-deployment.yaml
   - client/client-service.yaml
+  - loadbalancer/metallb-native.yaml
+  - loadbalancer/ip_pool.yaml
+  - loadbalancer/I2_adv.yaml
 
