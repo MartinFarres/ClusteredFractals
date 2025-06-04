@@ -3,17 +3,18 @@ kind: Kustomization
 
 resources:
   - namespace.yaml
+  - redis/redis-pvc.yaml
   - redis/redis-deployment.yaml
   - redis/redis-service.yaml
   - server/server-deployment.yaml
   - server/server-service.yaml
+  - autoscaler/autoscaler-serviceaccount.yaml
   - autoscaler/autoscaler-clusterrole.yaml
   - autoscaler/autoscaler-clusterrolebinding.yaml
-  - autoscaler/autoscaler-configmap.yaml
-  - autoscaler/autoscaler-deployment.yaml
   - autoscaler/autoscaler-role.yaml
   - autoscaler/autoscaler-rolebinding.yaml
-  - autoscaler/autoscaler-serviceaccount.yaml
+  - autoscaler/autoscaler-configmap.yaml
+  - autoscaler/autoscaler-deployment.yaml
   - client/client-deployment.yaml
   - client/client-service.yaml
   - loadbalancer/metallb-native.yaml

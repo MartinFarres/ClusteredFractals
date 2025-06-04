@@ -6,9 +6,8 @@ metadata:
 spec:
   selector:
     app: client
-  type: NodePort
+  type: LoadBalancer
   ports:
     - protocol: TCP
       port: 80
       targetPort: 80
-      nodePort: 30081   

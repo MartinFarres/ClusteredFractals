@@ -1,6 +1,6 @@
 import axios from 'axios';
 
-const API_URL = `http://${window.location.hostname}:30080/api`;
+const API_URL = `http://10.66.100.201/api`;
 
 export const submitJob = async (params) => {
   const response = await axios.put(`${API_URL}/submit-job`, params);
