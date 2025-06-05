@@ -6,7 +6,7 @@ import json
 
 # Initialize Flask
 app = Flask(__name__)
-CORS(app, resources={r"/api/*": {"origins": "*"}})
+CORS(app)
 
 # Redis client
 r = redis.Redis(host='redis', port=6379, db=0)
