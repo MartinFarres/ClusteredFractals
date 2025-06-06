@@ -9,23 +9,21 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
 - [ClusteredFractals](#clusteredfractals)
   - [📖 Table of Contents](#-table-of-contents)
   - [Architecture Overview](#architecture-overview)
-  - [Local Development](#local-development)
   - [Kubernetes Deployment](#kubernetes-deployment)
     - [**Prerequisites**](#prerequisites)
-    - [**Steps**](#steps)
+    - [**Guide**](#guide)
     - [**Environment \& Configuration**](#environment--configuration)
     - [**Submitting MPI Jobs**](#submitting-mpi-jobs)
-    - [**Load test script**](#load-test-script)
     - [**Job Payload Format**](#job-payload-format)
 
 ---
 
 ## Architecture Overview
 
-![image](https://github.com/user-attachments/assets/b0f000c0-4c41-40b0-8a07-ba219fb09a96)
+![Image](https://github.com/user-attachments/assets/6d7dd8ac-ba69-4bfb-ba27-e2b5074afa51)
 
 
-1. **Client** submits fractal parameters via REST to the **Server**.
+1. **Web Client** submits fractal parameters via REST to the **Server**. It's is exposed externally through a Kubernetes **LoadBalancer** service provided by MetalLB, allowing users to access the interface from outside the cluster.
 2. **Server:** 
 
    - Queues jobs in Redis (`pending_tasks`) using `RPUSH mpi_jobs...`.
@@ -71,33 +69,6 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
 
 ---
 
-## Local Development
-
-1. **Install dependencies**
-   ```bash
-   make install
-   ```
-2. **Run Server & Client together**
-
-   ```bash
-   make dev
-   ```
-
-3. **Or run separately**
-
-   ```bash
-   make run-server   # backend
-   make run-client   # frontend
-   ```
-
-4. **Clean artifacts**
-
-   ```bash
-   make clean
-   ```
-
----
-
 ## Kubernetes Deployment
 
 ### **Prerequisites**
@@ -105,18 +76,17 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
 - [kubectl](https://kubernetes.io/docs/tasks/tools/)
 - [Minikube](https://minikube.sigs.k8s.io/docs/) for local testing
 
-### **Steps**
+*Note: You don’t need access to a remote Kubernetes cluster to try this project. You can run everything locally using Minikube, including MetalLB and all components.*
+
+### **Guide**
 
 ```bash
-# Start a local cluster
-minikube start
 
 # Deploy all components
 kubectl apply -k manifests/
 
 # To tear down
 kubectl delete -k manifests/
-minikube stop
 
 #OPTIONAL:
 # See namespaces
@@ -130,6 +100,12 @@ kubectl logs -f <pod-name> -n <namespace-name>
 
 # Monitor pods, services, deployments, etc
 kubectl get all -n <namespace-name>
+
+# View the MetalLB LoadBalancer service (to check external IP assignment)
+kubectl get svc -o wide -n metallb-system
+
+# View all services with detailed info (IP, ports, type, etc.)
+kubectl get svc -o wide
 ```
 
 ### **Environment & Configuration**
@@ -174,25 +150,6 @@ RPUSH pending_tasks '{"args":[<args>]}'
 LRANGE <queue_name> 0 -1
 ```
 
-### **Load test script**
-
-This script (stress_test.sh) sends multiple PUT requests to the /api/submit-job endpoint to verify that the server is working correctly.
-
-It simulates light load by allowing you to adjust the number of requests and the concurrency level. It prints the HTTP status code for each request.
-
-Usage
-
-```bash
-#<IP or hostname>: The address of the server
-#[PORT]: (Optional) defaults to 30080 if not specified
-./stress_test.sh <IP or hostname> [PORT]
-```
-
-Expected Output
-
-The script prints one line per request with the HTTP response code (200, 202, 404, etc.).
-If you see 000, it means the connection failed (likely due to server not running, wrong port, or networking issue).
-
 ### **Job Payload Format**
 
 | Field  | Type    | Description                               |
@@ -212,4 +169,4 @@ RPUSH mpi_jobs '{
 }'
 ```
 
-For more details on available arguments, see the C++ README: https://github.com/FrancoYudica/DistributedFractals/issues
+For more details on available arguments, see the C++ README: https://github.com/FrancoYudica/DistributedFractals
