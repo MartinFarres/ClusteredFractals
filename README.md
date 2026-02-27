@@ -20,7 +20,8 @@ ClusteredFractals is a distributed fractal‐generation system built on MPI and 
 
 ## Architecture Overview
 
-![Image](https://github.com/user-attachments/assets/6d7dd8ac-ba69-4bfb-ba27-e2b5074afa51)
+<img width="1104" height="726" alt="image" src="https://github.com/user-attachments/assets/943601a8-8100-4187-bf6a-278cedb58ac3" />
+
 
 
 1. **Web Client** submits fractal parameters via REST to the **Server**. It's is exposed externally through a Kubernetes **LoadBalancer** service provided by MetalLB, allowing users to access the interface from outside the cluster.
